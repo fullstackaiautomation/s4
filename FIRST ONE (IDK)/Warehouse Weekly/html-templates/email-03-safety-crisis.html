@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Weekly - Forklift Safety Crisis</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Main styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .header {
+            background-color: #1f4e79;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .tagline {
+            color: #b8d4f0;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-highlight {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #721c24;
+        }
+
+        .section-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+            margin: 25px 0 15px 0;
+        }
+
+        .bullet-list {
+            margin: 15px 0;
+        }
+
+        .bullet-item {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .bullet-item:before {
+            content: "→";
+            color: #1f4e79;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .checkmark-list {
+            margin: 15px 0;
+        }
+
+        .checkmark-item {
+            margin: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .checkmark-item:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #856404;
+        }
+
+        .cost-breakdown {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .cost-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .cost-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .customer-story {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #155724;
+        }
+
+        .action-plan {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .action-step {
+            margin: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .action-step:before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            top: 0;
+            background-color: #1f4e79;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 20px;
+        }
+
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #ff6b35;
+            color: #ffffff !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e55a2b;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .signature {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .ps-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+            .content {
+                padding: 20px !important;
+            }
+            .stat-highlight {
+                font-size: 16px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <a href="#" class="logo">WAREHOUSE WEEKLY</a>
+            <div class="tagline">Insights for Material Handling Professionals</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="greeting">Hi [First Name],</div>
+
+            <p>OSHA just released their 2024 citation data, and the numbers are concerning:</p>
+
+            <div class="stat-highlight">
+                2,248 forklift-related violations cited in 2024
+            </div>
+
+            <div class="cost-breakdown">
+                <div class="cost-item">
+                    <span>Average cost per safety violation:</span>
+                    <span><strong>$13,494</strong></span>
+                </div>
+                <div class="cost-item">
+                    <span>Average workers' compensation claim:</span>
+                    <span><strong>$41,003</strong></span>
+                </div>
+                <div class="cost-item">
+                    <span>Accidents that were preventable:</span>
+                    <span><strong>70%</strong></span>
+                </div>
+            </div>
+
+            <div class="warning-box">
+                <strong>But here's what's most troubling:</strong> 70% of these accidents were completely preventable.
+            </div>
+
+            <div class="section-header">The hidden costs go beyond fines:</div>
+            <div class="checkmark-list">
+                <div class="checkmark-item">Lost productivity during investigations</div>
+                <div class="checkmark-item">Increased insurance premiums</div>
+                <div class="checkmark-item">Employee morale and retention issues</div>
+                <div class="checkmark-item">Potential criminal liability for severe incidents</div>
+            </div>
+
+            <div class="action-plan">
+                <div class="section-header">Your action plan:</div>
+                <div class="action-step" data-step="1"><strong>Immediate:</strong> Download our forklift safety audit checklist</div>
+                <div class="action-step" data-step="2"><strong>Short-term:</strong> Implement collision avoidance systems</div>
+                <div class="action-step" data-step="3"><strong>Long-term:</strong> Consider automated alternatives for high-risk areas</div>
+            </div>
+
+            <div class="section-header">Technology solutions that work:</div>
+            <div class="bullet-list">
+                <div class="bullet-item">Proximity sensors that automatically slow forklifts near pedestrians</div>
+                <div class="bullet-item">Camera systems with blind spot monitoring</div>
+                <div class="bullet-item">Automated guided vehicles for repetitive routes</div>
+            </div>
+
+            <div class="customer-story">
+                <strong>Real example:</strong> Midwest Manufacturing eliminated 95% of near-miss incidents after installing our safety system package. Investment: $45K. Potential savings from just one prevented accident: $50K+.
+            </div>
+
+            <p><strong>Don't wait for an accident to take action.</strong></p>
+
+            <div class="cta-container">
+                <a href="#" class="cta-button">Download Free Safety Audit Checklist</a>
+            </div>
+
+            <div class="signature">
+                <p>Best regards,<br>
+                <strong>[Your Name]</strong><br>
+                Source 4 Industries</p>
+            </div>
+
+            <div class="ps-section">
+                <strong>P.S.</strong> Schedule a safety consultation and we'll include a complimentary risk assessment of your current operation: <a href="#" style="color: #1f4e79;">Schedule Now</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Source 4 Industries</strong><br>
+            Material Handling Solutions<br>
+            [Your Address] | [Phone] | [Email]</p>
+
+            <p>You're receiving this because you subscribed to Warehouse Weekly.<br>
+            <a href="#" style="color: #666;">Update preferences</a> |
+            <a href="#" style="color: #666;">Unsubscribe</a></p>
+        </div>
+    </div>
+</body>
+</html>

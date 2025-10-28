@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(move \"process_upload.py\" \"Ad Spend Processor Skill Files\"\" && move \"create_excel_report.py\" \"Ad Spend Processor Skill Files\"\")",
+      "Bash(move \"create_summary_report.py\" \"Ad Spend Processor Skill Files\"\" && move \"create_pdf_report.py\" \"Ad Spend Processor Skill Files\"\")",
+      "Bash(move \"master_workflow.py\" \"Ad Spend Processor Skill Files\"\" && move \"config.json\" \"Ad Spend Processor Skill Files\"\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(find:*)",
+      "Bash(git config:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

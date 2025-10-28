@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Weekly - Collaborative Robot Revolution</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Main styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .header {
+            background-color: #1f4e79;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .tagline {
+            color: #b8d4f0;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .revolution-stats {
+            background-color: #e8f3ff;
+            border-left: 4px solid #1f4e79;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+            font-weight: bold;
+            color: #1f4e79;
+        }
+
+        .stat-item:before {
+            content: "→";
+            color: #1f4e79;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .section-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+            margin: 25px 0 15px 0;
+        }
+
+        .revolution-highlight {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #856404;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .comparison-table {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .comparison-row {
+            display: flex;
+            margin: 10px 0;
+            padding: 10px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .comparison-row:last-child {
+            border-bottom: none;
+        }
+
+        .comparison-label {
+            font-weight: bold;
+            width: 40%;
+            color: #1f4e79;
+        }
+
+        .traditional-col {
+            width: 30%;
+            color: #721c24;
+            font-size: 14px;
+        }
+
+        .cobot-col {
+            width: 30%;
+            color: #155724;
+            font-size: 14px;
+        }
+
+        .applications-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .application-card {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            border-left: 4px solid #28a745;
+        }
+
+        .app-title {
+            font-weight: bold;
+            color: #1f4e79;
+            margin-bottom: 8px;
+        }
+
+        .app-description {
+            font-size: 14px;
+            color: #155724;
+        }
+
+        .why-cobots {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .cobot-benefit {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .cobot-benefit:before {
+            content: "→";
+            color: #28a745;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .case-study {
+            background-color: #e8f3ff;
+            border: 1px solid #b8d4f0;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .result-card {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 15px;
+            text-align: center;
+            color: #155724;
+        }
+
+        .result-number {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        .result-description {
+            font-size: 12px;
+        }
+
+        .worker-feedback {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-style: italic;
+            color: #856404;
+            text-align: center;
+        }
+
+        .assessment-questions {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .assessment-question {
+            margin: 10px 0;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .assessment-question:before {
+            content: counter(question-counter) ".";
+            counter-increment: question-counter;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background-color: #1f4e79;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+            line-height: 20px;
+        }
+
+        .assessment-questions {
+            counter-reset: question-counter;
+        }
+
+        .conditional-message {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #155724;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #ff6b35;
+            color: #ffffff !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e55a2b;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .signature {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .ps-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+            .content {
+                padding: 20px !important;
+            }
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            .comparison-row {
+                flex-direction: column;
+            }
+            .comparison-label, .traditional-col, .cobot-col {
+                width: 100%;
+                margin: 5px 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <a href="#" class="logo">WAREHOUSE WEEKLY</a>
+            <div class="tagline">Insights for Material Handling Professionals</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="greeting">Hi [First Name],</div>
+
+            <div class="revolution-highlight">
+                The robot revolution isn't coming—it's here:
+            </div>
+
+            <div class="revolution-stats">
+                <div class="stat-item">13% of warehouses already use collaborative robots</div>
+                <div class="stat-item">32% are evaluating implementation this year</div>
+                <div class="stat-item">Industry projections: 30% adoption by 2026</div>
+            </div>
+
+            <div class="revolution-highlight">
+                But these aren't the robots you're thinking of.
+            </div>
+
+            <div class="comparison-table">
+                <div class="section-header">Cobots vs. Traditional Robots:</div>
+
+                <div class="comparison-row">
+                    <div class="comparison-label"></div>
+                    <div class="traditional-col"><strong>Traditional</strong></div>
+                    <div class="cobot-col"><strong>Cobots</strong></div>
+                </div>
+
+                <div class="comparison-row">
+                    <div class="comparison-label">Worker Impact:</div>
+                    <div class="traditional-col">Replace workers</div>
+                    <div class="cobot-col">Work WITH humans</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div class="comparison-label">Task Flexibility:</div>
+                    <div class="traditional-col">Fixed tasks</div>
+                    <div class="cobot-col">Adapt to tasks</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div class="comparison-label">Safety:</div>
+                    <div class="traditional-col">Barriers required</div>
+                    <div class="cobot-col">Safe interaction</div>
+                </div>
+            </div>
+
+            <div class="section-header">Perfect cobot applications:</div>
+
+            <div class="applications-grid">
+                <div class="application-card">
+                    <div class="app-title">✅ Collaborative picking</div>
+                    <div class="app-description">Robot retrieves, human decides</div>
+                </div>
+
+                <div class="application-card">
+                    <div class="app-title">✅ Automated palletizing</div>
+                    <div class="app-description">Heavy lifting without strain</div>
+                </div>
+
+                <div class="application-card">
+                    <div class="app-title">✅ Inventory management</div>
+                    <div class="app-description">Continuous cycle counting</div>
+                </div>
+            </div>
+
+            <div class="why-cobots">
+                <div class="section-header">Why cobots win:</div>
+                <div class="cobot-benefit">Lower investment than full automation</div>
+                <div class="cobot-benefit">Faster implementation (weeks vs. months)</div>
+                <div class="cobot-benefit">Flexible deployment across multiple tasks</div>
+                <div class="cobot-benefit">Workers become supervisors, not unemployed</div>
+            </div>
+
+            <div class="case-study">
+                <div class="section-header">Real-world results:</div>
+                <p><strong>Pacific Distribution</strong> deployed 3 collaborative picking robots in their fulfillment center.</p>
+
+                <div class="section-header">6-month results:</div>
+                <div class="results-grid">
+                    <div class="result-card">
+                        <div class="result-number">40%</div>
+                        <div class="result-description">reduction in worker fatigue complaints</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-number">25%</div>
+                        <div class="result-description">increase in picking productivity</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-number">15%</div>
+                        <div class="result-description">improvement in order accuracy</div>
+                    </div>
+                    <div class="result-card">
+                        <div class="result-number">Zero</div>
+                        <div class="result-description">safety incidents</div>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin: 15px 0; font-weight: bold; color: #1f4e79;">
+                    18-month ROI achieved
+                </div>
+
+                <div class="worker-feedback">
+                    <strong>Worker feedback:</strong> "The robots handle the boring, heavy stuff. I focus on problem-solving and quality control."
+                </div>
+            </div>
+
+            <div class="assessment-questions">
+                <div class="section-header">Your cobot opportunity assessment:</div>
+                <div class="assessment-question">Repetitive tasks taking >30% of worker time?</div>
+                <div class="assessment-question">Heavy lifting causing injury/fatigue?</div>
+                <div class="assessment-question">Accuracy-critical processes?</div>
+                <div class="assessment-question">Labor shortage in specific areas?</div>
+            </div>
+
+            <div class="conditional-message">
+                If you answered "yes" to any of these, cobots could transform your operation.
+            </div>
+
+            <div class="cta-container">
+                <a href="#" class="cta-button">Schedule Your Cobot Demonstration</a>
+            </div>
+
+            <div class="signature">
+                <p>Best regards,<br>
+                <strong>[Your Name]</strong><br>
+                Source 4 Industries</p>
+            </div>
+
+            <div class="ps-section">
+                <strong>P.S.</strong> Visit our demonstration center to see cobots in action. Most visitors are surprised how natural human-robot collaboration feels: <a href="#" style="color: #1f4e79;">Schedule Visit</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Source 4 Industries</strong><br>
+            Material Handling Solutions<br>
+            [Your Address] | [Phone] | [Email]</p>
+
+            <p>You're receiving this because you subscribed to Warehouse Weekly.<br>
+            <a href="#" style="color: #666;">Update preferences</a> |
+            <a href="#" style="color: #666;">Unsubscribe</a></p>
+        </div>
+    </div>
+</body>
+</html>

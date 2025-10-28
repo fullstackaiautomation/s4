@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(dir \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\" /b)",
+      "Bash(start \"\" \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\\Bulk_Bollard_Order_Proposal.pptx\")",
+      "Bash(start \"\" \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\\Bulk_Bollard_Order_Proposal_v2.pptx\")",
+      "Bash(start \"\" \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\\Bulk_Bollard_Order_Proposal_Final.pptx\")",
+      "Bash(start \"\" \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\\Bulk_Bollard_Order_Proposal_FINAL_WITH_COMPETITORS.pptx\")",
+      "Bash(findstr:*)",
+      "Bash(start \"\" \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\\Bulk_Bollard_Order_Proposal_COMPLETE.pptx\")",
+      "Bash(start \"\" \"C:\\Users\\blkw\\OneDrive\\Documents\\Claude Code\\Source 4 Industries\\Bulk Bollards\\Bulk_Bollard_Order_Proposal_FINAL_v2.pptx\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

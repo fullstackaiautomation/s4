@@ -1,0 +1,13 @@
+{
+  "month": "2025-10",
+  "input_files": {
+    "google": "Product report (1).csv",
+    "bing": "7765305030076.csv"
+  },
+  "paths": {
+    "sku_documents": "..\\..\\..\\SKU Documents",
+    "input_dir": "..",
+    "output_dir": "../{month}"
+  },
+  "notes": "Update 'month' and 'input_files' when processing a new month. Output will go to ../2025-10, ../2025-11, etc."
+}

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Weekly - Order Accuracy Economics</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Main styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .header {
+            background-color: #1f4e79;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .tagline {
+            color: #b8d4f0;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .question-box {
+            background-color: #e8f3ff;
+            border: 2px solid #1f4e79;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+        }
+
+        .cost-breakdown {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .cost-item {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .cost-item:before {
+            content: "→";
+            color: #1f4e79;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .stat-highlight {
+            background-color: #e8f3ff;
+            border-left: 4px solid #1f4e79;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+        }
+
+        .section-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+            margin: 25px 0 15px 0;
+        }
+
+        .accuracy-comparison {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+            gap: 20px;
+        }
+
+        .accuracy-card {
+            flex: 1;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .manual-accuracy {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .auto-accuracy {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .accuracy-rate {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .tech-solutions {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .tech-item {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            border-left: 4px solid #1f4e79;
+        }
+
+        .tech-title {
+            font-weight: bold;
+            color: #1f4e79;
+            margin-bottom: 5px;
+        }
+
+        .tech-investment {
+            font-size: 14px;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .tech-benefits {
+            font-size: 14px;
+            color: #28a745;
+        }
+
+        .customer-spotlight {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #155724;
+        }
+
+        .savings-calc {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .calc-formula {
+            font-family: monospace;
+            background-color: white;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .calc-example {
+            font-weight: bold;
+            color: #856404;
+            margin-top: 10px;
+        }
+
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #ff6b35;
+            color: #ffffff !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e55a2b;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .signature {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .ps-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+            .content {
+                padding: 20px !important;
+            }
+            .accuracy-comparison {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .accuracy-rate {
+                font-size: 20px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <a href="#" class="logo">WAREHOUSE WEEKLY</a>
+            <div class="tagline">Insights for Material Handling Professionals</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="greeting">Hi [First Name],</div>
+
+            <div class="question-box">
+                Quick math question: How much does a picking error cost your operation?
+            </div>
+
+            <p>If you said $10-50 per error, you're right. But the real cost includes:</p>
+
+            <div class="cost-breakdown">
+                <div class="cost-item">Return processing labor</div>
+                <div class="cost-item">Re-shipment costs</div>
+                <div class="cost-item">Customer service time</div>
+                <div class="cost-item">Lost customer lifetime value</div>
+            </div>
+
+            <div class="stat-highlight">
+                Industry reality check: 58% of warehouses are prioritizing order accuracy improvements this year. Here's why:
+            </div>
+
+            <div class="accuracy-comparison">
+                <div class="accuracy-card manual-accuracy">
+                    <div><strong>Manual Picking</strong></div>
+                    <div class="accuracy-rate">97-98%</div>
+                    <div>accuracy rate</div>
+                </div>
+                <div class="accuracy-card auto-accuracy">
+                    <div><strong>Automated Systems</strong></div>
+                    <div class="accuracy-rate">99.9%</div>
+                    <div>accuracy rate</div>
+                </div>
+            </div>
+
+            <p style="text-align: center; font-weight: bold; margin: 20px 0;">
+                The difference: Thousands in monthly savings
+            </p>
+
+            <div class="section-header">Accuracy technologies that pay for themselves:</div>
+
+            <div class="tech-solutions">
+                <div class="tech-item">
+                    <div class="tech-title">✅ Pick-to-light systems</div>
+                    <div class="tech-investment">$15K investment</div>
+                    <div class="tech-benefits">• 99.5% accuracy rate • 25% faster picking • 6-month payback</div>
+                </div>
+
+                <div class="tech-item">
+                    <div class="tech-title">✅ Voice picking technology</div>
+                    <div class="tech-investment">$25K investment</div>
+                    <div class="tech-benefits">• Hands-free operation • Real-time error correction • 8-month payback</div>
+                </div>
+
+                <div class="tech-item">
+                    <div class="tech-title">✅ Automated sorting</div>
+                    <div class="tech-investment">$45K investment</div>
+                    <div class="tech-benefits">• 99.9% accuracy rate • 40% labor reduction • 12-month payback</div>
+                </div>
+            </div>
+
+            <div class="customer-spotlight">
+                <strong>Customer spotlight:</strong> Regional E-commerce reduced picking errors from 2.5% to 0.1% using our integrated pick-to-light system.<br><br>
+                <strong>Monthly savings:</strong> $8,400<br>
+                <strong>System paid for itself in:</strong> 5 months
+            </div>
+
+            <div class="savings-calc">
+                <div class="section-header">Your accuracy opportunity:</div>
+                <div class="calc-formula">
+                    Current error rate × Monthly orders × $10 per error = Monthly opportunity
+                </div>
+                <div class="calc-example">
+                    Example: 2% error rate × 10,000 orders × $10 = $2,000 monthly savings opportunity
+                </div>
+            </div>
+
+            <div class="cta-container">
+                <a href="#" class="cta-button">Calculate Your Accuracy Savings Potential</a>
+            </div>
+
+            <div class="signature">
+                <p>Best regards,<br>
+                <strong>[Your Name]</strong><br>
+                Source 4 Industries</p>
+            </div>
+
+            <div class="ps-section">
+                <strong>P.S.</strong> Request a demo and we'll show you exactly how much more accurate (and profitable) your picking could be: <a href="#" style="color: #1f4e79;">Schedule Demo</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Source 4 Industries</strong><br>
+            Material Handling Solutions<br>
+            [Your Address] | [Phone] | [Email]</p>
+
+            <p>You're receiving this because you subscribed to Warehouse Weekly.<br>
+            <a href="#" style="color: #666;">Update preferences</a> |
+            <a href="#" style="color: #666;">Unsubscribe</a></p>
+        </div>
+    </div>
+</body>
+</html>

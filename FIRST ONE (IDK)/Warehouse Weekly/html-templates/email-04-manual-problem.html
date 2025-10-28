@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Weekly - The 52% Manual Problem</title>
+    <style>
+        /* Reset styles */
+        body, table, td, p, a, li, blockquote {
+            -webkit-text-size-adjust: 100%;
+            -ms-text-size-adjust: 100%;
+        }
+        table, td {
+            mso-table-lspace: 0pt;
+            mso-table-rspace: 0pt;
+        }
+        img {
+            -ms-interpolation-mode: bicubic;
+            border: 0;
+            height: auto;
+            line-height: 100%;
+            outline: none;
+            text-decoration: none;
+        }
+
+        /* Main styles */
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            background-color: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+        }
+
+        .header {
+            background-color: #1f4e79;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .logo {
+            color: #ffffff;
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .tagline {
+            color: #b8d4f0;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .content {
+            padding: 30px;
+            line-height: 1.6;
+            color: #333333;
+        }
+
+        .greeting {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-highlight {
+            background-color: #e8f3ff;
+            border-left: 4px solid #1f4e79;
+            padding: 15px 20px;
+            margin: 20px 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+        }
+
+        .trend-box {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+            color: #721c24;
+        }
+
+        .section-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f4e79;
+            margin: 25px 0 15px 0;
+        }
+
+        .bullet-list {
+            margin: 15px 0;
+        }
+
+        .bullet-item {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .bullet-item:before {
+            content: "→";
+            color: #1f4e79;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
+        }
+
+        .checkmark-list {
+            margin: 15px 0;
+        }
+
+        .checkmark-item {
+            margin: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .checkmark-item:before {
+            content: "✅";
+            position: absolute;
+            left: 0;
+        }
+
+        .cost-comparison {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .cost-column {
+            width: 48%;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .manual-cost {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .auto-cost {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .starter-package {
+            background-color: #e2e3e5;
+            border: 1px solid #d6d8db;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .package-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px dotted #ccc;
+        }
+
+        .package-item:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #1f4e79;
+        }
+
+        .customer-story {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+            font-style: italic;
+        }
+
+        .cta-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #ff6b35;
+            color: #ffffff !important;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e55a2b;
+        }
+
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #666666;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .signature {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .ps-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 14px;
+        }
+
+        /* Responsive */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100% !important;
+            }
+            .content {
+                padding: 20px !important;
+            }
+            .stat-highlight {
+                font-size: 16px !important;
+            }
+            .cost-comparison {
+                flex-direction: column;
+            }
+            .cost-column {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <a href="#" class="logo">WAREHOUSE WEEKLY</a>
+            <div class="tagline">Insights for Material Handling Professionals</div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <div class="greeting">Hi [First Name],</div>
+
+            <div class="stat-highlight">
+                This statistic stopped me in my tracks: 52% of warehouses are still mostly manual operations.
+            </div>
+
+            <div class="trend-box">
+                Even more surprising? That number is UP from 43% last year.
+            </div>
+
+            <div class="section-header">Why are companies moving backward on automation?</div>
+            <div class="bullet-list">
+                <div class="bullet-item">"It's too expensive" (but manual labor costs are rising 15-20% annually)</div>
+                <div class="bullet-item">"It's too complex" (but modern solutions are plug-and-play)</div>
+                <div class="bullet-item">"We're not ready" (but waiting costs compound daily)</div>
+            </div>
+
+            <div class="section-header">The real cost of staying manual:</div>
+
+            <div class="cost-comparison">
+                <div class="cost-column manual-cost">
+                    <h4>Manual Operations</h4>
+                    <div>3-5x higher error rates</div>
+                    <div>40-60% more time on repetitive tasks</div>
+                    <div>Cannot scale during peaks</div>
+                    <div>Higher injury rates</div>
+                </div>
+                <div class="cost-column auto-cost">
+                    <h4>Automated Systems</h4>
+                    <div>99.9% accuracy rates</div>
+                    <div>Consistent performance</div>
+                    <div>Scales with demand</div>
+                    <div>Safer operations</div>
+                </div>
+            </div>
+
+            <p><strong>Good news:</strong> You don't need to automate everything at once.</p>
+
+            <div class="starter-package">
+                <div class="section-header">Smart automation starter pack:</div>
+                <div class="package-item">
+                    <span>Conveyor systems for high-volume routes</span>
+                    <span><strong>$25K investment</strong></span>
+                </div>
+                <div class="package-item">
+                    <span>Pick-to-light systems for accuracy</span>
+                    <span><strong>$15K investment</strong></span>
+                </div>
+                <div class="package-item">
+                    <span>Automated packaging stations</span>
+                    <span><strong>$35K investment</strong></span>
+                </div>
+                <div class="package-item">
+                    <span>Combined impact: 30-40% productivity increase</span>
+                    <span><strong>18-month payback</strong></span>
+                </div>
+            </div>
+
+            <div class="customer-story">
+                <strong>Customer example:</strong> Regional Distribution started with just conveyor systems connecting their top 3 pick zones. Result: 25% faster picking, 60% fewer walking miles per shift.<br><br>
+                Six months later, they added voice picking. Now they're planning full automation.
+            </div>
+
+            <div style="text-align: center; font-size: 20px; font-weight: bold; color: #1f4e79; margin: 30px 0;">
+                Start small, scale smart.
+            </div>
+
+            <div class="cta-container">
+                <a href="#" class="cta-button">Book Your Automation Strategy Session</a>
+            </div>
+
+            <div class="signature">
+                <p>Best regards,<br>
+                <strong>[Your Name]</strong><br>
+                Source 4 Industries</p>
+            </div>
+
+            <div class="ps-section">
+                <strong>P.S.</strong> Get our "Manual vs. Automated Cost Calculator" to see exactly what staying manual is costing you: <a href="#" style="color: #1f4e79;">Download Calculator</a>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>Source 4 Industries</strong><br>
+            Material Handling Solutions<br>
+            [Your Address] | [Phone] | [Email]</p>
+
+            <p>You're receiving this because you subscribed to Warehouse Weekly.<br>
+            <a href="#" style="color: #666;">Update preferences</a> |
+            <a href="#" style="color: #666;">Unsubscribe</a></p>
+        </div>
+    </div>
+</body>
+</html>

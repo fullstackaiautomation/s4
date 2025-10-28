@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes -p @dylibso/mcpx@latest install --client claude-desktop @dylibso/mcp-server-google-ads)",
+      "Read(//c/Users/blkw/AppData/Roaming/Claude/**)",
+      "Bash(dir \"C:\\Users\\blkw\\AppData\\Roaming\\Claude\" /b)",
+      "Bash(npm search \"google ads mcp\")",
+      "Bash(node generate-refresh-token.js)",
+      "Bash(npm view @weppa-cloud/mcp-google-ads repository homepage)",
+      "Bash(npm install google-ads-api)",
+      "Bash(node google-ads-fetcher.js 2024-09-01 2024-09-30)",
+      "Bash(npx -y md-to-pdf google-ads-api-design-doc.md)",
+      "Bash(taskkill /F /IM node.exe)",
+      "Bash(findstr /C:\"SUCCESS\" /C:\"not found\")",
+      "Bash(taskkill //F //IM node.exe)",
+      "Bash(dir /b)",
+      "Bash(npm install)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

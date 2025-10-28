@@ -1,0 +1,28 @@
+{
+  "name": "ads-report-automation",
+  "version": "1.0.0",
+  "description": "Automation tools for Google Ads report processing and data cleaning",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "clean-data": "node src/clean-data.js",
+    "find-missing-skus": "node src/find-missing-skus.js",
+    "merge-cbo": "node src/merge-cbo-data.js",
+    "remaining-vendors": "node src/handle-remaining-vendors.js",
+    "process-all": "node src/process-all.js"
+  },
+  "keywords": [
+    "google-ads",
+    "automation",
+    "excel",
+    "data-processing"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "dotenv": "^16.4.5",
+    "chalk": "^5.3.0",
+    "ora": "^8.0.1"
+  }
+}
