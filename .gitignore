@@ -62,3 +62,11 @@ logs/
 *.temp
 tmp/
 temp/
+
+# Credentials and secrets
+credentials.json
+secrets.json
+config/secrets/*
+
+# Local settings
+.claude/settings.local.json
