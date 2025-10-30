@@ -50,3 +50,30 @@ Source 4 Industries/
 - This is a Windows development environment
 - Multiple sub-projects with different purposes
 - Documentation should be kept up-to-date in progress.md, decisions.md, and bugs.md
+
+## Git Sync Workflow
+
+**At the START of every session:**
+```bash
+git sync-start
+```
+This pulls the latest changes from your other machines.
+
+**At the END of every session:**
+```bash
+git sync-end
+```
+This automatically stages, commits, and pushes all changes with a timestamp.
+
+**Manual commands (if aliases not available):**
+- Start: `git pull`
+- End: `git add . && git commit -m "describe changes" && git push`
+
+## Repository
+
+This project syncs to a private GitHub repository:
+- **Sync Repo:** https://github.com/fullstackaiautomation/source-4-sync (Private)
+- **Branch:** main
+
+**Note on .gitignore:**
+Sensitive files (`.env`, `credentials.json`, API keys) are excluded from git tracking via `.gitignore`. Each machine maintains its own copy of these files locally.
