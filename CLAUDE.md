@@ -71,9 +71,5 @@ This automatically stages, commits, and pushes all changes with a timestamp.
 
 ## Repository
 
-This project syncs to a private GitHub repository:
-- **Sync Repo:** https://github.com/fullstackaiautomation/source-4-sync (Private)
-- **Branch:** main
-
 **Note on .gitignore:**
 Sensitive files (`.env`, `credentials.json`, API keys) are excluded from git tracking via `.gitignore`. Each machine maintains its own copy of these files locally.
