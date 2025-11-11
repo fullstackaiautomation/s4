@@ -51,7 +51,7 @@ https://fullstackaiautomation.github.io/s4/
 4. Upload all files from `Source 4 Industries/Source 4 Dashboard/web/out/` to that folder
 5. Commit
 
-Then visit: your-github-pages-url/s4/
+Then visit: https://fullstackaiautomation.github.io/s4/
 
 ---
 
