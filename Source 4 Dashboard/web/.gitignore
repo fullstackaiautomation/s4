@@ -15,7 +15,7 @@
 
 # next.js
 /.next/
-/out/
+# /out/  -- Uncomment to ignore static exports for GitHub Pages deployment
 
 # production
 /build

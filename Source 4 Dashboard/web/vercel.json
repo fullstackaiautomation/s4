@@ -1,0 +1,14 @@
+{
+  "projectName": "source-4-dashboard",
+  "buildCommand": "npm run build",
+  "outputDirectory": ".next",
+  "env": {
+    "SUPABASE_URL": "@supabase_url",
+    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key"
+  },
+  "domains": ["s4.fullstackaiautomation.com"],
+  "github": {
+    "enabled": true,
+    "autoAlias": false
+  }
+}
