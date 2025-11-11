@@ -1,0 +1,249 @@
+name: S4 Dashboard Processor
+code: s4-dashboard-processor
+description: |
+  Automates the CBOS to Dashboard data processing workflow.
+
+  Processes monthly Sales Order Detail exports from CBOS and transforms them into
+  clean, formatted data ready for import into the Source 4 Industries main sales dashboard.
+
+  Features:
+  - Automatic file detection and date extraction
+  - Data cleaning and SKU normalization
+  - Master SKU enrichment (vendor, cost, categories)
+  - Financial calculations (costs, profit, ROI)
+  - Shipping/discount proportional distribution
+  - State abbreviation extraction
+  - Month code generation
+  - Multi-tab quality control reports
+  - Margin and missing data alerts
+
+version: 1.0.0
+author: Claude Code
+license: MIT
+
+# Input files and paths
+inputs:
+  sales_order_detail:
+    description: "Sales Order Detail export from CBOS"
+    location: "Dashboard/Monthly Imports"
+    pattern: "Sales_Order_Detail*.xlsx"
+    required: true
+
+  master_sku:
+    description: "Master SKU reference data"
+    location: "Ads Report/SKU Documents"
+    filename: "Google Ads - Product Spend - MASTER SKU (1).csv"
+    required: true
+
+# Output file configuration
+outputs:
+  dashboard_import:
+    description: "Multi-tab Excel file ready for dashboard import"
+    location: "Dashboard"
+    filename_format: "YYYY-MM_Dashboard_Import.xlsx"
+    sheets:
+      - "READY TO IMPORT"
+      - "MISSING COSTS"
+      - "MISSING OVERALL CATEGORY"
+      - "MISSING PRODUCT CATEGORY - MAIN VENDORS"
+      - "HIGH MARGIN ALERT"
+      - "NEGATIVE/ZERO MARGIN ALERT"
+
+# Processing configuration
+processing:
+  excluded_sales_reps:
+    - "KRISTI CROFFORD"
+    - "MEL HEDGEPETH"
+    - "CURT ROSS"
+
+  excluded_activity_types:
+    - "Projects"
+
+  shipping_terms:
+    - "DELIVERY FEE"
+    - "FREIGHT CHARGED"
+    - "FREIGHT-NON TAX"
+    - "FREIGHT-Taxable"
+    - "SHIPPING CHARGED - NON-TAXABLE"
+    - "SHIPPING CHARGED - TAXABLE"
+    - "RESTOCKING FEE"
+    - "TAX, TARIFF, FREIGHT"
+
+  discount_terms:
+    - "DISCOUNT"
+
+  high_margin_threshold: 0.70
+  zero_margin_threshold: 0.00
+
+  # 18 main vendors with their categories
+  main_vendors:
+    "S4 Bollards":
+      - "Bollard Covers"
+      - "Crash Rated Bollards"
+      - "Fixed Bollards"
+      - "Flexible Bollards"
+      - "Removable Bollards"
+      - "Retractable Bollards"
+
+    "Handle-It":
+      - "Floor Mounted Barrier"
+      - "Forklift Wheel Stops"
+      - "Guard Rail"
+      - "Rack Protection"
+      - "Stretch Wrap Machines"
+
+    "Casters":
+      - "Bellman Casters"
+      - "Gate Casters"
+      - "General Casters"
+      - "Heavy Duty / Container"
+      - "High Temp Casters"
+      - "Leveling Casters"
+
+    "Lincoln Industrial":
+      - "Air Motors"
+      - "Hoses"
+      - "Kits"
+      - "Other"
+      - "Pumps"
+      - "Quicklub"
+
+    "Noblelift":
+      - "Battery, Charger, Accessories"
+      - "Bigger Electric Equipment"
+      - "EDGE Powered"
+      - "Electric Pallet Jacks"
+      - "Manual Pallet Jacks"
+      - "Scissor Lifts"
+      - "Straddle Stackers"
+
+    "B&P Manufacturing":
+      - "Aristocrat"
+      - "Carts"
+      - "Dock Plates"
+      - "Hand Truck Accessories"
+      - "Hand Trucks"
+      - "Ramps"
+
+    "Dutro":
+      - "Accessories"
+      - "Carts"
+      - "Dollies"
+      - "Hand Trucks"
+      - "Mattress Moving Carts"
+      - "Vending Machine Trucks"
+
+    "Reliance Foundry":
+      - "Bollard Covers"
+      - "Crash Rated Bollards"
+      - "Decorative Bollards"
+      - "Fixed Bollards"
+      - "Flexible Bollards"
+      - "Fold Down Bollards"
+      - "Removable Bollards"
+      - "Retractable Bollards"
+
+    "Ekko Lifts":
+      - "Electric Forklifts"
+      - "Electric Pallet Jacks"
+      - "Electric Straddle Stackers"
+      - "Electric Walkie Stackers"
+      - "Manual Pallet Jacks"
+      - "Other"
+
+    "Adrian's Safety":
+      - "Cargo Safety"
+      - "Pallet Rack Safety Straps"
+      - "Pallet Rack Safety Netting"
+
+    "Sentry Protection":
+      - "ST - Accessories"
+      - "ST - Collision Sentry"
+      - "ST - Column Protectors"
+
+    "Little Giant":
+      - "Cabinet"
+      - "Carts"
+      - "Dollies"
+      - "Gas Cylinder"
+      - "Rack"
+      - "Tables"
+
+    "Merrick Machine":
+      - "Accessories"
+      - "Auto Dollies"
+      - "Auto Rotisseries"
+      - "Flat Top Dollies"
+      - "Lifts, Rack, Stands"
+      - "Other Dollies"
+
+    "Wesco":
+      - "Accessories & Other"
+      - "Carts, Hand Trucks & Dollies"
+      - "Dock Equipment"
+      - "Drum Equipment"
+      - "Lifts & Stackers"
+      - "Pallet Jacks"
+
+    "Valley Craft":
+      - "Accessories"
+      - "Cabinets & Desks"
+      - "Carts"
+      - "Dumpers & Lifts"
+      - "Hand Trucks & Dollies"
+      - "Other"
+
+    "Bluff Manufacturing":
+      - "Bollards & Protectors"
+      - "Dock Boards"
+      - "Edge of Dock Levelers"
+      - "Other"
+      - "Ramps"
+      - "Stairways"
+
+    "Meco-Omaha":
+      - "Cantilever"
+      - "Carts & Dollies"
+      - "Guard Rail"
+      - "Hoppers"
+      - "Other"
+      - "Racking"
+
+    "Apollo Forklift":
+      - "AF - Electric Pallet Jacks"
+      - "AF - Electric Stackers"
+      - "AF - Manual Pallet Jacks"
+      - "AF - Manual Stackers"
+      - "AF - Order Pickers"
+      - "AF - Scissor Lifts"
+
+# State abbreviations and regions
+states:
+  us_states:
+    - ["AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA"]
+    - ["HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD"]
+    - ["MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ"]
+    - ["NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC"]
+    - ["SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY", "DC"]
+
+  canadian_provinces:
+    - ["AB", "BC", "MB", "NB", "NL", "NT", "NS", "NU", "ON", "PE", "QC", "SK", "YT"]
+
+commands:
+  process:
+    description: "Process the monthly CBOS data into dashboard format"
+    usage: "This skill runs automatically when invoked. No parameters needed."
+    behavior: "Automatically detects the latest Sales Order Detail file, processes it, and creates a multi-tab Excel output file with the current month in YYYY-MM format."
+
+  help:
+    description: "Show help information"
+    usage: "Display workflow steps and configuration details"
+
+# Logging and output
+logging:
+  level: "INFO"
+  console: true
+  file: "dashboard_processor.log"
+
+output_format: "Excel multi-tab"
+error_handling: "Comprehensive with detailed logging"

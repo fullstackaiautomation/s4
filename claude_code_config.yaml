@@ -1,0 +1,22 @@
+# Claude Code Configuration
+# Enable network access for Supabase operations
+
+network:
+  enabled: true
+  allowed_domains:
+    - "*.supabase.co"
+    - "supabase.co"
+    - "tcryasuisocelektmrmb.db.supabase.co"
+    - "tcryasuisocelektmrmb.supabase.co"
+
+# Allow database connections
+database:
+  enabled: true
+  allowed_hosts:
+    - "tcryasuisocelektmrmb.db.supabase.co"
+
+# Environment variables to use
+environment:
+  SUPABASE_URL: "https://tcryasuisocelekmrmb.supabase.co"
+  SUPABASE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjcnlhc3Vpc29jZWxla3Rtcm1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjExNTg0NjAsImV4cCI6MjA3NjczNDQ2MH0.ph2fiRKBIrgqwAnDOG_wM6-RehO0M_EJ1QJInItH8aQ"
+  SUPABASE_SERVICE_ROLE_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRjcnlhc3Vpc29jZWxla3Rtcm1iIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MTE1ODQ2MCwiZXhwIjoyMDc2NzM0NDYwfQ.HgHPvdDTWuiX1egM7OSsrHmYLfqT6Ijdr1-SPNe8oG0"

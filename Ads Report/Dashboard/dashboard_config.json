@@ -1,0 +1,248 @@
+{
+  "excluded_sales_reps": [
+    "KRISTI CROFFORD",
+    "MEL HEDGEPETH",
+    "CURT ROSS"
+  ],
+  "excluded_activity_types": [
+    "Projects"
+  ],
+  "shipping_terms": [
+    "DELIVERY FEE",
+    "FREIGHT CHARGED",
+    "FREIGHT-NON TAX",
+    "FREIGHT-Taxable",
+    "SHIPPING CHARGED - NON-TAXABLE",
+    "SHIPPING CHARGED - TAXABLE",
+    "RESTOCKING FEE",
+    "TAX, TARIFF, FREIGHT"
+  ],
+  "discount_terms": [
+    "DISCOUNT"
+  ],
+  "high_margin_threshold": 0.70,
+  "zero_margin_threshold": 0.00,
+  "state_abbreviations": {
+    "ALABAMA": "AL",
+    "ALASKA": "AK",
+    "ARIZONA": "AZ",
+    "ARKANSAS": "AR",
+    "CALIFORNIA": "CA",
+    "COLORADO": "CO",
+    "CONNECTICUT": "CT",
+    "DELAWARE": "DE",
+    "FLORIDA": "FL",
+    "GEORGIA": "GA",
+    "HAWAII": "HI",
+    "IDAHO": "ID",
+    "ILLINOIS": "IL",
+    "INDIANA": "IN",
+    "IOWA": "IA",
+    "KANSAS": "KS",
+    "KENTUCKY": "KY",
+    "LOUISIANA": "LA",
+    "MAINE": "ME",
+    "MARYLAND": "MD",
+    "MASSACHUSETTS": "MA",
+    "MICHIGAN": "MI",
+    "MINNESOTA": "MN",
+    "MISSISSIPPI": "MS",
+    "MISSOURI": "MO",
+    "MONTANA": "MT",
+    "NEBRASKA": "NE",
+    "NEVADA": "NV",
+    "NEW HAMPSHIRE": "NH",
+    "NEW JERSEY": "NJ",
+    "NEW MEXICO": "NM",
+    "NEW YORK": "NY",
+    "NORTH CAROLINA": "NC",
+    "NORTH DAKOTA": "ND",
+    "OHIO": "OH",
+    "OKLAHOMA": "OK",
+    "OREGON": "OR",
+    "PENNSYLVANIA": "PA",
+    "RHODE ISLAND": "RI",
+    "SOUTH CAROLINA": "SC",
+    "SOUTH DAKOTA": "SD",
+    "TENNESSEE": "TN",
+    "TEXAS": "TX",
+    "UTAH": "UT",
+    "VERMONT": "VT",
+    "VIRGINIA": "VA",
+    "WASHINGTON": "WA",
+    "WEST VIRGINIA": "WV",
+    "WISCONSIN": "WI",
+    "WYOMING": "WY",
+    "DISTRICT OF COLUMBIA": "DC",
+    "ALBERTA": "AB",
+    "BRITISH COLUMBIA": "BC",
+    "MANITOBA": "MB",
+    "NEW BRUNSWICK": "NB",
+    "NEWFOUNDLAND AND LABRADOR": "NL",
+    "NORTHWEST TERRITORIES": "NT",
+    "NOVA SCOTIA": "NS",
+    "NUNAVUT": "NU",
+    "ONTARIO": "ON",
+    "PRINCE EDWARD ISLAND": "PE",
+    "QUEBEC": "QC",
+    "SASKATCHEWAN": "SK",
+    "YUKON": "YT"
+  },
+  "canadian_provinces": [
+    "AB",
+    "BC",
+    "MB",
+    "NB",
+    "NL",
+    "NT",
+    "NS",
+    "NU",
+    "ON",
+    "PE",
+    "QC",
+    "SK",
+    "YT"
+  ],
+  "main_vendors": {
+    "S4 Bollards": [
+      "Bollard Covers",
+      "Crash Rated Bollards",
+      "Fixed Bollards",
+      "Flexible Bollards",
+      "Removable Bollards",
+      "Retractable Bollards"
+    ],
+    "Handle-It": [
+      "Floor Mounted Barrier",
+      "Forklift Wheel Stops",
+      "Guard Rail",
+      "Rack Protection",
+      "Stretch Wrap Machines"
+    ],
+    "Casters": [
+      "Bellman Casters",
+      "Gate Casters",
+      "General Casters",
+      "Heavy Duty / Container",
+      "High Temp Casters",
+      "Leveling Casters"
+    ],
+    "Lincoln Industrial": [
+      "Air Motors",
+      "Hoses",
+      "Kits",
+      "Other",
+      "Pumps",
+      "Quicklub"
+    ],
+    "Noblelift": [
+      "Battery, Charger, Accessories",
+      "Bigger Electric Equipment",
+      "EDGE Powered",
+      "Electric Pallet Jacks",
+      "Manual Pallet Jacks",
+      "Scissor Lifts",
+      "Straddle Stackers"
+    ],
+    "B&P Manufacturing": [
+      "Aristocrat",
+      "Carts",
+      "Dock Plates",
+      "Hand Truck Accessories",
+      "Hand Trucks",
+      "Ramps"
+    ],
+    "Dutro": [
+      "Accessories",
+      "Carts",
+      "Dollies",
+      "Hand Trucks",
+      "Mattress Moving Carts",
+      "Vending Machine Trucks"
+    ],
+    "Reliance Foundry": [
+      "Bollard Covers",
+      "Crash Rated Bollards",
+      "Decorative Bollards",
+      "Fixed Bollards",
+      "Flexible Bollards",
+      "Fold Down Bollards",
+      "Removable Bollards",
+      "Retractable Bollards"
+    ],
+    "Ekko Lifts": [
+      "Electric Forklifts",
+      "Electric Pallet Jacks",
+      "Electric Straddle Stackers",
+      "Electric Walkie Stackers",
+      "Manual Pallet Jacks",
+      "Other"
+    ],
+    "Adrian's Safety": [
+      "Cargo Safety",
+      "Pallet Rack Safety Straps",
+      "Pallet Rack Safety Netting"
+    ],
+    "Sentry Protection": [
+      "ST - Accessories",
+      "ST - Collision Sentry",
+      "ST - Column Protectors"
+    ],
+    "Little Giant": [
+      "Cabinet",
+      "Carts",
+      "Dollies",
+      "Gas Cylinder",
+      "Rack",
+      "Tables"
+    ],
+    "Merrick Machine": [
+      "Accessories",
+      "Auto Dollies",
+      "Auto Rotisseries",
+      "Flat Top Dollies",
+      "Lifts, Rack, Stands",
+      "Other Dollies"
+    ],
+    "Wesco": [
+      "Accessories & Other",
+      "Carts, Hand Trucks & Dollies",
+      "Dock Equipment",
+      "Drum Equipment",
+      "Lifts & Stackers",
+      "Pallet Jacks"
+    ],
+    "Valley Craft": [
+      "Accessories",
+      "Cabinets & Desks",
+      "Carts",
+      "Dumpers & Lifts",
+      "Hand Trucks & Dollies",
+      "Other"
+    ],
+    "Bluff Manufacturing": [
+      "Bollards & Protectors",
+      "Dock Boards",
+      "Edge of Dock Levelers",
+      "Other",
+      "Ramps",
+      "Stairways"
+    ],
+    "Meco-Omaha": [
+      "Cantilever",
+      "Carts & Dollies",
+      "Guard Rail",
+      "Hoppers",
+      "Other",
+      "Racking"
+    ],
+    "Apollo Forklift": [
+      "AF - Electric Pallet Jacks",
+      "AF - Electric Stackers",
+      "AF - Manual Pallet Jacks",
+      "AF - Manual Stackers",
+      "AF - Order Pickers",
+      "AF - Scissor Lifts"
+    ]
+  }
+}
