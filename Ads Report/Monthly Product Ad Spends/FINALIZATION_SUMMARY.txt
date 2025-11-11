@@ -1,0 +1,88 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    S4 AD SPEND PROCESSOR - FINALIZED
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ FINALIZATION COMPLETE
+
+Your Claude Skill has been finalized with a clean, professional workflow.
+
+═══════════════════════════════════════════════════════════════════════════════
+                              WHAT YOU GET
+═══════════════════════════════════════════════════════════════════════════════
+
+Each month produces exactly 2 files in a folder named: YYYY-MM Ad Spend Reports
+
+📊 2025-10 Ad Spend Reports/
+   ├── 2025-10 Product Spend Report.xlsx (All 5 tabs in one file)
+   │   • Product Spend Upload
+   │   • Vendor Breakdown
+   │   • Summary Report (Top 20 analyses)
+   │   • Missing Categories
+   │   • Missing SKUs
+   │
+   └── 2025-10 Ad Spend Performance Report.pdf (6-page analysis)
+       • Top 20 products by spend (Google & Bing side-by-side)
+       • Top 20 products by revenue (Google & Bing side-by-side)
+       • Top 20 highest CPC analysis
+       • Top 20 vendors by ad spend
+       • Top 20 categories with vendor details
+       • Professional formatting with charts/colors
+
+═══════════════════════════════════════════════════════════════════════════════
+                           CLEAN FILE ORGANIZATION
+═══════════════════════════════════════════════════════════════════════════════
+
+Monthly Product Ad Spends/
+├── 2025-10 Ad Spend Reports/     ← FINAL OUTPUT (Excel + PDF)
+├── 2025-11 Ad Spend Reports/     ← FINAL OUTPUT (Excel + PDF)
+├── 2025-12 Ad Spend Reports/     ← FINAL OUTPUT (Excel + PDF)
+│
+├── Ad Spend Processor Skill Files/
+│   ├── master_workflow.py        ← Run this to process new month
+│   ├── config.json               ← Update month & filenames
+│   ├── process_upload.py
+│   ├── create_excel_report.py
+│   ├── create_summary_report.py
+│   └── create_pdf_report.py
+│
+└── (Source CSV files for current month)
+
+═══════════════════════════════════════════════════════════════════════════════
+                              HOW TO USE MONTHLY
+═══════════════════════════════════════════════════════════════════════════════
+
+For a new month (e.g., November 2025):
+
+1. Download the latest Google & Bing CSV exports
+2. Save them in: Ads Report/Monthly Product Ad Spends/
+3. Edit config.json:
+   - Change month: "2025-10" → "2025-11"
+   - Update filenames for Google and Bing
+4. Run: python master_workflow.py
+5. Find output in: 2025-11 Ad Spend Reports/
+
+═══════════════════════════════════════════════════════════════════════════════
+                              KEY IMPROVEMENTS
+═══════════════════════════════════════════════════════════════════════════════
+
+✨ Single Excel file with all data (no separate CSVs cluttering the folder)
+✨ Professional folder naming: YYYY-MM Ad Spend Reports
+✨ Clean workflow - only final reports exported
+✨ All 5 tabs in one workbook for easy analysis
+✨ PDF export ready to share with stakeholders
+✨ No unnecessary intermediate files in output folder
+
+═══════════════════════════════════════════════════════════════════════════════
+                         PREVIOUS VERSIONS REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+Old structure (no longer used):
+  - 2025-10/ (temporary working folder, can be deleted)
+  - Multiple separate CSV files (now in Excel tabs)
+  - Disorganized naming conventions
+
+═══════════════════════════════════════════════════════════════════════════════
+
+Your skill is now production-ready and organized! 🚀
+
+Questions? See SKILL_FINALIZED.md in the root directory
