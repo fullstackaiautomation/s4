@@ -59,7 +59,7 @@ git subtree push --prefix out origin gh-pages
 
 ### 5. Verify Deployment
 
-Visit: **https://s4.fullstackaiautomation.com**
+Visit: **https://fullstackaiautomation.github.io/s4dashboard/**
 
 Changes typically appear within **30 seconds to 2 minutes** after pushing to `gh-pages`.
 
@@ -78,20 +78,22 @@ Push to gh-pages branch
     ↓
 GitHub Pages detects change
     ↓
-Serves static files from https://s4.fullstackaiautomation.com
+Serves static files from https://fullstackaiautomation.github.io/s4dashboard/
 ```
 
 ---
 
 ## Next.js Configuration for GitHub Pages
 
-Your `next.config.ts` is configured for root domain deployment:
+Your `next.config.ts` is configured for GitHub Pages subdirectory deployment:
 
 ```typescript
+const isProd = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
-  output: "export",        // Static export (no basePath)
-  basePath: "",            // Deployed at root domain
-  assetPrefix: "",         // Assets served from root
+  output: "export",
+  basePath: isProd ? "/s4dashboard" : "",
+  assetPrefix: isProd ? "/s4dashboard/" : "",
   trailingSlash: true,
   images: {
     unoptimized: true,
@@ -101,8 +103,9 @@ const nextConfig: NextConfig = {
 
 **Key points:**
 - `output: "export"` - Generates static HTML/CSS/JS (required for GitHub Pages)
-- `basePath: ""` - No subdirectory prefix (deployed at `s4.fullstackaiautomation.com`)
-- `assetPrefix: ""` - CSS/JS loaded from root
+- `basePath: "/s4dashboard"` (production only) - Routes all pages under `/s4dashboard/` subdirectory
+- `assetPrefix: "/s4dashboard/"` (production only) - CSS/JS loaded from `/s4dashboard/` subdirectory
+- Empty strings in development - allows local testing without the subdirectory
 
 ---
 
@@ -112,11 +115,11 @@ const nextConfig: NextConfig = {
 
 **Cause:** Incorrect `basePath` or `assetPrefix` in `next.config.ts`
 
-**Fix:** Ensure both are empty strings `""` since the site is at root domain:
+**Fix:** Ensure the config properly uses `/s4dashboard` for production:
 
 ```typescript
-basePath: "",      // NOT "/s4dashboard" or similar
-assetPrefix: "",   // NOT "/s4dashboard/" or similar
+basePath: isProd ? "/s4dashboard" : "",
+assetPrefix: isProd ? "/s4dashboard/" : "",
 ```
 
 Then rebuild and redeploy:
@@ -136,18 +139,6 @@ git subtree push --prefix out origin gh-pages
 npm run build
 git subtree push --prefix out origin gh-pages
 ```
-
-### "Browser cache showing old version"
-
-**Fix:** Hard refresh in your browser:
-- Windows/Linux: `Ctrl + Shift + R`
-- Mac: `Cmd + Shift + R`
-
-Or open DevTools and disable cache while DevTools is open.
-
-### "gh-pages branch doesn't exist"
-
-**Fix:** Create it by pushing an initial build:
 
 ```bash
 npm run build
@@ -197,7 +188,7 @@ git push origin main
 # 4. Deploy built output to gh-pages
 git subtree push --prefix out origin gh-pages
 
-# 5. Verify at https://s4.fullstackaiautomation.com
+# 5. Verify at https://fullstackaiautomation.github.io/s4dashboard/
 ```
 
 ---
@@ -214,7 +205,7 @@ git subtree push --prefix out origin gh-pages
 
 ## DNS Configuration
 
-Your domain `s4.fullstackaiautomation.com` is already configured to point to GitHub Pages via DNS CNAME records. No changes needed unless you move to a different hosting service.
+Your domain `https://fullstackaiautomation.github.io/s4dashboard/` is already configured to point to GitHub Pages via DNS CNAME records. No changes needed unless you move to a different hosting service.
 
 ---
 

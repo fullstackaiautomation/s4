@@ -4,8 +4,8 @@ const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
   output: "export",
-  basePath: "", // No base path needed - deployed at root domain
-  assetPrefix: "", // Assets served from root
+  basePath: isProd ? "/s4dashboard" : "",
+  assetPrefix: isProd ? "/s4dashboard/" : "",
   trailingSlash: true,
   images: {
     unoptimized: true,

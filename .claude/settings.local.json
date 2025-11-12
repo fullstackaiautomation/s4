@@ -6,7 +6,11 @@
       "Bash(npm run build:*)",
       "Bash(npx gh-pages:*)",
       "Bash(npx gh-pages-clean:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(dir:*)",
+      "Bash(git push)",
+      "Bash(git remote set-url:*)",
+      "Skill(browser-automation:browser-automation)"
     ],
     "deny": [],
     "ask": []

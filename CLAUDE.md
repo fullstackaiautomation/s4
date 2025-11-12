@@ -98,8 +98,8 @@ This automatically stages, commits, and pushes all changes with a timestamp.
 ## Repository
 
 This project is hosted on GitHub:
-- **Repository:** https://github.com/fullstackaiautomation/s4
-- **Branch:** main
+- **Repository:** https://github.com/fullstackaiautomation/s4dashboard
+- **Branch:** gh-pages
 
 **Note on .gitignore:**
 Sensitive files (`.env`, `credentials.json`, API keys) are excluded from git tracking via `.gitignore`. Each machine maintains its own copy of these files locally.
