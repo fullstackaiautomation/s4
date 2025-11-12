@@ -3,18 +3,22 @@ import { TrendArea } from "@/components/charts/trend-area";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricTile } from "@/components/ui/metric";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
-import {
-  getAbandonedCarts,
-  getAdsTimeseries,
-  getHomeRuns,
-  getQuotes,
-  getSalesSnapshots,
-} from "@/lib/data-service";
+import { getAbandonedCarts, getHomeRuns, getQuotes, getSalesSnapshots } from "@/lib/data-service";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils";
 
 export default async function SalesDashboard() {
-  const [{ data: snapshots }, { data: quotes }, { data: abandonedCarts }, { data: homeRuns }, { data: adsTimeseries }] =
-    await Promise.all([getSalesSnapshots(), getQuotes(), getAbandonedCarts(), getHomeRuns(), getAdsTimeseries()]);
+  const [{ data: snapshots }, { data: quotes }, { data: abandonedCarts }, { data: homeRuns }] = await Promise.all([
+    getSalesSnapshots(),
+    getQuotes(),
+    getAbandonedCarts(),
+    getHomeRuns(),
+  ]);
+
+  const trendSeries = snapshots.map((snapshot) => ({
+    date: snapshot.date,
+    value: snapshot.revenue ?? snapshot.value ?? 0,
+    secondary: snapshot.secondary ?? (snapshot.revenue ?? snapshot.value ?? 0) * 0.65,
+  }));
 
   const trailingSnapshot = snapshots.at(-1);
   const trailingRevenue = trailingSnapshot?.revenue ?? 0;
@@ -74,7 +78,7 @@ export default async function SalesDashboard() {
             <CardDescription>Track revenue and marketing spend to understand contribution margin trends.</CardDescription>
           </div>
         </CardHeader>
-        <TrendArea data={adsTimeseries} primaryLabel="Revenue" secondaryLabel="Ad Spend" />
+        <TrendArea data={trendSeries} primaryLabel="Revenue" secondaryLabel="Ad Spend" />
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">

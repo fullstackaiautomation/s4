@@ -119,7 +119,7 @@ export async function getHomeRuns(): Promise<
     }>
   > & { refreshedAt: string }
 > {
-  return {
+  const fallback = {
     data: [
       {
         id: "1",
@@ -155,262 +155,360 @@ export async function getHomeRuns(): Promise<
         closedAt: "2024-11-08",
       },
     ],
-    source: "sample",
+    source: "sample" as const,
     refreshedAt: new Date().toISOString(),
   };
+
+  try {
+    const { data, error } = await supabase
+      .from("all_time_sales")
+      .select("invoice_number, vendor, rep, invoice_total, sales_total, date, description")
+      .not("invoice_number", "is", null)
+      .order("invoice_total", { ascending: false })
+      .limit(2000);
+
+    if (error) {
+      console.warn("Supabase error fetching home runs:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      return fallback;
+    }
+
+    type InvoiceAggregate = {
+      invoice: string;
+      vendor: string;
+      rep: string;
+      value: number;
+      closedAt: string;
+      product: string;
+      sales: number;
+    };
+
+    const aggregate = new Map<string, InvoiceAggregate>();
+
+    const formatDate = (value: string | null) => {
+      if (!value) return "Unknown";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return "Unknown";
+      return parsed.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    };
+
+    data.forEach((row, index) => {
+      const invoice = (row.invoice_number as string) ?? `unknown-${index}`;
+      if (!aggregate.has(invoice)) {
+        aggregate.set(invoice, {
+          invoice,
+          vendor: (row.vendor as string) || "Unknown Vendor",
+          rep: (row.rep as string) || "Unknown Rep",
+          value: 0,
+          closedAt: formatDate(row.date as string | null),
+          product: (row.description as string) || "High-Value Order",
+          sales: 0,
+        });
+      }
+
+      const entry = aggregate.get(invoice)!;
+      const lineRevenue = Number(row.sales_total ?? row.invoice_total ?? 0) || 0;
+      entry.value += lineRevenue;
+      entry.sales += lineRevenue;
+      if (!entry.product && row.description) {
+        entry.product = row.description as string;
+      }
+      if (!entry.vendor && row.vendor) {
+        entry.vendor = row.vendor as string;
+      }
+      if (!entry.rep && row.rep) {
+        entry.rep = row.rep as string;
+      }
+    });
+
+    const homeRuns = Array.from(aggregate.values())
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10)
+      .map((item, idx) => ({
+        id: `${item.invoice}-${idx}`,
+        product: item.product,
+        sales: item.sales,
+        date: item.closedAt,
+        value: item.value,
+        vendor: item.vendor,
+        invoice: item.invoice,
+        rep: item.rep,
+        closedAt: item.closedAt,
+      }));
+
+    if (homeRuns.length === 0) {
+      return fallback;
+    }
+
+    return {
+      data: homeRuns,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching home runs:", error);
+    return fallback;
+  }
 }
 
 // Sales Snapshots
 export async function getSalesSnapshots(): Promise<
   ApiResponse<Array<TimeSeriesPoint & { topReps: Array<{ name: string; revenue: number }> }>>
 > {
+  const sampleData: Array<TimeSeriesPoint & { topReps: Array<{ name: string; revenue: number }> }> = [
+    {
+      date: "Nov 1",
+      value: 45000,
+      secondary: 32000,
+      revenue: 45000,
+      orders: 24,
+      avgOrderValue: 1875,
+      topVendors: [
+        { name: "Vendor A", revenue: 28000 },
+        { name: "Vendor B", revenue: 17000 },
+      ],
+      topReps: [
+        { name: "Alice Johnson", revenue: 15000 },
+        { name: "Bob Smith", revenue: 12000 },
+        { name: "Carol Davis", revenue: 18000 },
+      ],
+    },
+    {
+      date: "Nov 2",
+      value: 52000,
+      secondary: 38000,
+      revenue: 52000,
+      orders: 28,
+      avgOrderValue: 1857,
+      topVendors: [
+        { name: "Vendor B", revenue: 32000 },
+        { name: "Vendor C", revenue: 20000 },
+      ],
+      topReps: [
+        { name: "Bob Smith", revenue: 18000 },
+        { name: "Alice Johnson", revenue: 16000 },
+        { name: "Carol Davis", revenue: 18000 },
+      ],
+    },
+    {
+      date: "Nov 3",
+      value: 48000,
+      secondary: 35000,
+      revenue: 48000,
+      orders: 26,
+      avgOrderValue: 1846,
+      topVendors: [
+        { name: "Vendor A", revenue: 25000 },
+        { name: "Vendor C", revenue: 23000 },
+      ],
+      topReps: [
+        { name: "Carol Davis", revenue: 20000 },
+        { name: "Alice Johnson", revenue: 14000 },
+        { name: "Bob Smith", revenue: 14000 },
+      ],
+    },
+    {
+      date: "Nov 4",
+      value: 61000,
+      secondary: 44000,
+      revenue: 61000,
+      orders: 33,
+      avgOrderValue: 1848,
+      topVendors: [
+        { name: "Vendor C", revenue: 35000 },
+        { name: "Vendor A", revenue: 26000 },
+      ],
+      topReps: [
+        { name: "Alice Johnson", revenue: 22000 },
+        { name: "Bob Smith", revenue: 20000 },
+        { name: "Carol Davis", revenue: 19000 },
+      ],
+    },
+    {
+      date: "Nov 5",
+      value: 55000,
+      secondary: 40000,
+      revenue: 55000,
+      orders: 29,
+      avgOrderValue: 1897,
+      topVendors: [
+        { name: "Vendor B", revenue: 29000 },
+        { name: "Vendor A", revenue: 26000 },
+      ],
+      topReps: [
+        { name: "Bob Smith", revenue: 20000 },
+        { name: "Carol Davis", revenue: 18000 },
+        { name: "Alice Johnson", revenue: 17000 },
+      ],
+    },
+    {
+      date: "Nov 6",
+      value: 67000,
+      secondary: 48000,
+      revenue: 67000,
+      orders: 36,
+      avgOrderValue: 1861,
+      topVendors: [
+        { name: "Vendor A", revenue: 28000 },
+        { name: "Vendor B", revenue: 17000 },
+      ],
+      topReps: [
+        { name: "Carol Davis", revenue: 25000 },
+        { name: "Alice Johnson", revenue: 22000 },
+        { name: "Bob Smith", revenue: 20000 },
+      ],
+    },
+    {
+      date: "Nov 7",
+      value: 72000,
+      secondary: 52000,
+      revenue: 72000,
+      orders: 38,
+      avgOrderValue: 1895,
+      topVendors: [
+        { name: "Vendor C", revenue: 38000 },
+        { name: "Vendor B", revenue: 34000 },
+      ],
+      topReps: [
+        { name: "Alice Johnson", revenue: 26000 },
+        { name: "Bob Smith", revenue: 23000 },
+        { name: "Carol Davis", revenue: 23000 },
+      ],
+    },
+  ];
+
+  const getFallbackResponse = (error?: string): ApiResponse<Array<TimeSeriesPoint & { topReps: Array<{ name: string; revenue: number }> }>> => ({
+    data: sampleData,
+    source: "sample",
+    error,
+  });
+
+  const parseNumber = (value: unknown): number => {
+    const parsed = Number(value ?? 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const formatMonthLabel = (monthKey: string): string => {
+    if (!monthKey || monthKey === "unknown") {
+      return "Unknown";
+    }
+    const [year, month] = monthKey.split("-");
+    const date = new Date(Number(year), Number(month) - 1, 1);
+    if (Number.isNaN(date.getTime())) {
+      return monthKey;
+    }
+    return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  };
+
   try {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+
     const { data, error } = await supabase
       .from("all_time_sales")
-      .select("*")
-      .limit(1000);
+      .select("date, month, sales_total, invoice_total, orders, order_quantity, vendor, rep")
+      .gte("date", start.toISOString())
+      .order("date", { ascending: true })
+      .limit(6000);
 
-    if (error || !data || data.length === 0) {
+    if (error) {
       console.warn("Supabase error fetching sales snapshots:", error);
-      // Fallback to sample data
-      return {
-        data: [
-          {
-            date: "Nov 1",
-            value: 45000,
-            secondary: 32000,
-            revenue: 45000,
-            orders: 24,
-            avgOrderValue: 1875,
-            topVendors: [
-              { name: "Vendor A", revenue: 28000 },
-              { name: "Vendor B", revenue: 17000 },
-            ],
-            topReps: [
-              { name: "Alice Johnson", revenue: 15000 },
-              { name: "Bob Smith", revenue: 12000 },
-              { name: "Carol Davis", revenue: 18000 },
-            ],
-          },
-          {
-            date: "Nov 2",
-            value: 52000,
-            secondary: 38000,
-            revenue: 52000,
-            orders: 28,
-            avgOrderValue: 1857,
-            topVendors: [
-              { name: "Vendor B", revenue: 32000 },
-              { name: "Vendor C", revenue: 20000 },
-            ],
-            topReps: [
-              { name: "Bob Smith", revenue: 18000 },
-              { name: "Alice Johnson", revenue: 16000 },
-              { name: "Carol Davis", revenue: 18000 },
-            ],
-          },
-          {
-            date: "Nov 3",
-            value: 48000,
-            secondary: 35000,
-            revenue: 48000,
-            orders: 26,
-            avgOrderValue: 1846,
-            topVendors: [
-              { name: "Vendor A", revenue: 25000 },
-              { name: "Vendor C", revenue: 23000 },
-            ],
-            topReps: [
-              { name: "Carol Davis", revenue: 20000 },
-              { name: "Alice Johnson", revenue: 14000 },
-              { name: "Bob Smith", revenue: 14000 },
-            ],
-          },
-          {
-            date: "Nov 4",
-            value: 61000,
-            secondary: 44000,
-            revenue: 61000,
-            orders: 33,
-            avgOrderValue: 1848,
-            topVendors: [
-              { name: "Vendor C", revenue: 35000 },
-              { name: "Vendor A", revenue: 26000 },
-            ],
-            topReps: [
-              { name: "Alice Johnson", revenue: 22000 },
-              { name: "Bob Smith", revenue: 20000 },
-              { name: "Carol Davis", revenue: 19000 },
-            ],
-          },
-          {
-            date: "Nov 5",
-            value: 55000,
-            secondary: 40000,
-            revenue: 55000,
-            orders: 29,
-            avgOrderValue: 1897,
-            topVendors: [
-              { name: "Vendor B", revenue: 29000 },
-              { name: "Vendor A", revenue: 26000 },
-            ],
-            topReps: [
-              { name: "Bob Smith", revenue: 20000 },
-              { name: "Carol Davis", revenue: 18000 },
-              { name: "Alice Johnson", revenue: 17000 },
-            ],
-          },
-          {
-            date: "Nov 6",
-            value: 67000,
-            secondary: 48000,
-            revenue: 67000,
-            orders: 36,
-            avgOrderValue: 1861,
-            topVendors: [
-              { name: "Vendor A", revenue: 28000 },
-              { name: "Vendor B", revenue: 17000 },
-            ],
-            topReps: [
-              { name: "Carol Davis", revenue: 25000 },
-              { name: "Alice Johnson", revenue: 22000 },
-              { name: "Bob Smith", revenue: 20000 },
-            ],
-          },
-          {
-            date: "Nov 7",
-            value: 72000,
-            secondary: 52000,
-            revenue: 72000,
-            orders: 38,
-            avgOrderValue: 1895,
-            topVendors: [
-              { name: "Vendor C", revenue: 38000 },
-              { name: "Vendor B", revenue: 34000 },
-            ],
-            topReps: [
-              { name: "Alice Johnson", revenue: 26000 },
-              { name: "Bob Smith", revenue: 23000 },
-              { name: "Carol Davis", revenue: 23000 },
-            ],
-          },
-        ],
-        source: "sample",
-        error: error?.message,
-      };
+      return getFallbackResponse(error.message);
     }
 
-    // Aggregate data by date (if date column exists)
-    const dateField = data[0] && (data[0].date || data[0].created_date || data[0].order_date || data[0].sale_date) ? Object.keys(data[0]).find(k => k.includes('date')) : null;
-
-    if (!dateField) {
-      // If no date field, just return a single snapshot with all data aggregated
-      const repRevenue = new Map<string, number>();
-      const vendorRevenue = new Map<string, number>();
-      let totalRevenue = 0;
-      let totalOrders = 0;
-
-      data.forEach(row => {
-        const amount = row.amount || row.revenue || row.total || 0;
-        const rep = row.rep || row.sales_rep || row.representative || "Unknown";
-        const vendor = row.vendor || row.partner || "Unknown";
-
-        totalRevenue += amount;
-        totalOrders += row.quantity || 1;
-
-        repRevenue.set(rep, (repRevenue.get(rep) ?? 0) + amount);
-        vendorRevenue.set(vendor, (vendorRevenue.get(vendor) ?? 0) + amount);
-      });
-
-      const topReps = Array.from(repRevenue.entries())
-        .map(([name, revenue]) => ({ name, revenue }))
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 3);
-
-      const topVendors = Array.from(vendorRevenue.entries())
-        .map(([name, revenue]) => ({ name, revenue }))
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 2);
-
-      return {
-        data: [
-          {
-            date: new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-            value: totalRevenue,
-            secondary: totalRevenue * 0.6,
-            revenue: totalRevenue,
-            orders: totalOrders,
-            avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-            topVendors,
-            topReps,
-          },
-        ],
-        source: "supabase",
-      };
+    if (!data || data.length === 0) {
+      return getFallbackResponse();
     }
 
-    // Group by date
-    const byDate = new Map<string, any[]>();
-    data.forEach(row => {
-      const dateVal = row[dateField];
-      const dateStr = dateVal ? new Date(dateVal).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "Unknown";
-      if (!byDate.has(dateStr)) byDate.set(dateStr, []);
-      byDate.get(dateStr)!.push(row);
+    type Bucket = {
+      sortKey: string;
+      label: string;
+      revenue: number;
+      orders: number;
+      vendorRevenue: Map<string, number>;
+      repRevenue: Map<string, number>;
+    };
+
+    const buckets = new Map<string, Bucket>();
+
+    data.forEach((row) => {
+      const monthKey = typeof row.month === "string" && /^\d{4}-\d{2}$/.test(row.month)
+        ? row.month
+        : row.date
+          ? new Date(row.date).toISOString().slice(0, 7)
+          : "unknown";
+
+      if (!buckets.has(monthKey)) {
+        buckets.set(monthKey, {
+          sortKey: monthKey,
+          label: formatMonthLabel(monthKey),
+          revenue: 0,
+          orders: 0,
+          vendorRevenue: new Map<string, number>(),
+          repRevenue: new Map<string, number>(),
+        });
+      }
+
+      const bucket = buckets.get(monthKey)!;
+
+      const revenue = parseNumber(row.invoice_total ?? row.sales_total);
+      bucket.revenue += revenue;
+
+      const orders = parseNumber(row.orders ?? row.order_quantity);
+      bucket.orders += orders > 0 ? orders : 0;
+
+      const vendorName = (row.vendor as string) || "Unknown";
+      bucket.vendorRevenue.set(vendorName, (bucket.vendorRevenue.get(vendorName) ?? 0) + revenue);
+
+      const repName = (row.rep as string) || "Unknown";
+      bucket.repRevenue.set(repName, (bucket.repRevenue.get(repName) ?? 0) + revenue);
     });
 
-    const snapshots = Array.from(byDate.entries())
-      .map(([date, records]) => {
-        const repRevenue = new Map<string, number>();
-        const vendorRevenue = new Map<string, number>();
-        let totalRevenue = 0;
-        let totalOrders = 0;
-
-        records.forEach(row => {
-          const amount = row.amount || row.revenue || row.total || 0;
-          const rep = row.rep || row.sales_rep || row.representative || "Unknown";
-          const vendor = row.vendor || row.partner || "Unknown";
-
-          totalRevenue += amount;
-          totalOrders += row.quantity || 1;
-
-          repRevenue.set(rep, (repRevenue.get(rep) ?? 0) + amount);
-          vendorRevenue.set(vendor, (vendorRevenue.get(vendor) ?? 0) + amount);
-        });
-
-        const topReps = Array.from(repRevenue.entries())
+    const snapshots = Array.from(buckets.values())
+      .filter((bucket) => bucket.revenue > 0)
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+      .map((bucket) => {
+        const topVendors = Array.from(bucket.vendorRevenue.entries())
           .map(([name, revenue]) => ({ name, revenue }))
           .sort((a, b) => b.revenue - a.revenue)
-          .slice(0, 3);
+          .slice(0, 5);
 
-        const topVendors = Array.from(vendorRevenue.entries())
+        const topReps = Array.from(bucket.repRevenue.entries())
           .map(([name, revenue]) => ({ name, revenue }))
           .sort((a, b) => b.revenue - a.revenue)
-          .slice(0, 2);
+          .slice(0, 5);
+
+        const orders = bucket.orders > 0 ? bucket.orders : 0;
+        const avgOrderValue = orders > 0 ? bucket.revenue / orders : 0;
 
         return {
-          date,
-          value: totalRevenue,
-          secondary: totalRevenue * 0.6,
-          revenue: totalRevenue,
-          orders: totalOrders,
-          avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+          date: bucket.label,
+          value: bucket.revenue,
+          secondary: bucket.revenue * 0.65,
+          revenue: bucket.revenue,
+          orders,
+          avgOrderValue,
           topVendors,
           topReps,
         };
-      })
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      });
+
+    if (snapshots.length === 0) {
+      return getFallbackResponse();
+    }
 
     return {
       data: snapshots,
       source: "supabase",
+      refreshedAt: new Date().toISOString(),
     };
   } catch (error) {
     console.error("Error fetching sales snapshots:", error);
-    return {
-      data: [],
-      source: "sample",
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
+    return getFallbackResponse(error instanceof Error ? error.message : "Unknown error");
   }
 }
 
