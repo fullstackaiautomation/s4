@@ -35,7 +35,7 @@ export default async function SalesDashboard() {
   return (
     <div className="space-y-10">
       <SectionHeader
-        title="Sales Performance"
+        title="Source 4 Industries Performance Dashboard"
         description="Monitor overall revenue trends, quotes pipeline health, and high-impact opportunities."
         badge="Pipeline"
       />

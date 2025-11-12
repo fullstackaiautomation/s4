@@ -10,7 +10,8 @@
       "Bash(dir:*)",
       "Bash(git push)",
       "Bash(git remote set-url:*)",
-      "Skill(browser-automation:browser-automation)"
+      "Skill(browser-automation:browser-automation)",
+      "Bash(npm run dev)"
     ],
     "deny": [],
     "ask": []

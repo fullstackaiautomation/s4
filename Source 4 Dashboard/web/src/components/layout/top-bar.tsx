@@ -50,7 +50,7 @@ export function TopBar({ alerts = SAMPLE_ALERTS, vendors, reps }: TopBarProps) {
   const activeAlerts = alerts.slice(0, 3);
 
   return (
-    <header className="sticky top-0 z-30 flex h-20 flex-col justify-center border-b border-border/80 bg-card/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-30 flex h-20 flex-col justify-center border-b border-border/80 bg-card/80 backdrop-blur-xl pt-6">
       <div className="flex flex-col gap-3 px-4 sm:px-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-2">

@@ -39,7 +39,7 @@ export default async function DashboardLayout({ children }: DashboardLayoutProps
             <MobileNav />
           </div>
           <TopBar alerts={alerts} vendors={Array.from(vendorSet)} reps={Array.from(repSet)} />
-          <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6">
+          <main className="flex-1 overflow-y-auto px-4 py-12 sm:px-6">
             <div className="mx-auto flex max-w-7xl flex-col gap-8 pb-16">{children}</div>
           </main>
         </div>

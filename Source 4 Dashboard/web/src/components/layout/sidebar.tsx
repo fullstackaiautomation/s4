@@ -39,10 +39,10 @@ export function Sidebar() {
           {!isCollapsed && (
             <div className="flex flex-col">
               <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Source 4
+                Source 4 Industries
               </span>
               <span className="text-sm font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                Industries
+                Performance Dashboard
               </span>
             </div>
           )}
