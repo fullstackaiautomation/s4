@@ -1,21 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(cd:*)",
-      "Bash(move \"process_upload.py\" \"Ad Spend Processor Skill Files\"\" && move \"create_excel_report.py\" \"Ad Spend Processor Skill Files\"\")",
-      "Bash(move \"create_summary_report.py\" \"Ad Spend Processor Skill Files\"\" && move \"create_pdf_report.py\" \"Ad Spend Processor Skill Files\"\")",
-      "Bash(move \"master_workflow.py\" \"Ad Spend Processor Skill Files\"\" && move \"config.json\" \"Ad Spend Processor Skill Files\"\")",
-      "Bash(git init:*)",
-      "Bash(git add:*)",
-      "Bash(find:*)",
-      "Bash(git config:*)",
-      "Bash(git commit:*)",
-      "Bash(git remote add:*)",
-      "Bash(git branch:*)",
-      "Bash(git push:*)",
-      "Bash(git commit -m \"$(cat <<''EOF''\nFinalize S4 Ad Spend Processor skill\n\n- Update master_workflow.py to automatically organize final reports\n- Implement YYYY-MM Ad Spend Reports folder structure\n- Export only Product Spend Report.xlsx and PDF (no separate CSVs)\n- All 5 analysis sheets consolidated in single Excel workbook\n- Create comprehensive documentation (README_FINALIZED.md)\n- Move 2025-10 reports to properly named folder\n- Ready for production monthly processing\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
-      "Bash(git remote set-url:*)",
-      "Bash(git reset:*)"
+      "Bash(env)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

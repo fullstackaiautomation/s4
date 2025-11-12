@@ -2,35 +2,61 @@
 
 ## Project Overview
 
-Source 4 Industries project directory containing multiple sub-projects and analysis work.
+Source 4 Industries enterprise operations platform with automated data processing, sales dashboards, and business intelligence tools.
 
-## Project Structure
+## Project Structure (Updated Nov 2025)
 
 ```
 Source 4 Industries/
-├── Ads Report/                    # Ad spending analysis and reporting
-│   └── Monthly Product Ad Spends/
-├── ad-spend-processor-extracted/  # Ad spend data processing
-├── s4-ad-spend-processor.skill    # Skill definition for ad processing
-├── Source 4 Dashboard/            # Dashboard application
-├── Bulk Bollards/                 # Bulk product management
-└── FIRST ONE (IDK)/               # Legacy/exploratory project
+├── README.md              # Main project documentation
+├── CLAUDE.md             # This file - AI context and instructions
+├── .env, .env.example    # Environment configuration
+├── .gitignore            # Git ignore rules
+├── bugs.md               # Bug tracking
+├── decisions.md          # Architectural decisions
+├── progress.md           # Progress tracking
+│
+├── Skills & Automations/  # Automation skills & processors
+│   ├── ad-spend-processor/       # Google/Bing ads data processing
+│   └── all-time-sales-processor/ # Sales data ETL pipeline
+│
+├── Source 4 Dashboard/   # Web dashboard application
+│   └── web/              # Next.js 15 app with Supabase
+│
+├── Reporting/            # Reports and analysis
+│   ├── Monthly Product Ad Spends/
+│   ├── All Time Sales/
+│   ├── Dashboard/
+│   └── SKU Documents/
+│
+└── Document Storage/     # All documentation & resources
+    ├── Data/            # CSV files, data exports
+    ├── Documentation/   # Guides, workflows, archives
+    │   ├── Archive/    # Historical docs
+    │   ├── Deployment/ # Deploy guides
+    │   ├── Supabase/   # Database docs
+    │   └── Workflows/  # Process docs
+    ├── Scripts/        # Import/setup scripts
+    └── SQL/            # Database queries, schemas
 ```
 
-## Key Directories & Purpose
+## Key Components
 
-### Ads Report
-- Monthly product ad spend analysis and documentation
-- Contains analysis files like `OCTOBER_2025_ANALYSIS.md`
-- Purpose: Track and analyze advertising spend across products
-
-### ad-spend-processor
-- Data processing logic for ad spending data
-- Handles file transformations and data normalization
+### Skills & Automations
+- **ad-spend-processor**: Processes monthly Google Ads & Bing Ads data
+- **all-time-sales-processor**: Transforms CBOS sales data for dashboards
+- Located in `Skills & Automations/` folder with their own documentation
 
 ### Source 4 Dashboard
-- Main dashboard application
-- Displays key metrics and analytics
+- Next.js 15 web application
+- Supabase real-time database integration
+- Live dashboards: Sales, Reps, Product Ad Spend, Home Runs
+- Located in `Source 4 Dashboard/web/`
+
+### Reporting
+- Monthly ad spend reports and analysis
+- Sales data processing and exports
+- Located in `Reporting/` with organized subfolders
 
 ## Common Tasks
 
