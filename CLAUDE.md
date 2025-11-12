@@ -76,6 +76,7 @@ Source 4 Industries/
 - This is a Windows development environment
 - Multiple sub-projects with different purposes
 - Documentation should be kept up-to-date in progress.md, decisions.md, and bugs.md
+- GitHub Pages deployment for the dashboard uses `npm run export`, which runs `next build` and a post-export script that writes `.nojekyll` so `_next` assets load correctly in production
 
 ## Git Sync Workflow
 

@@ -12,6 +12,11 @@
 
 (Archive of resolved issues)
 
+### 2025-11-12
+- **Issue**: GitHub Pages deployment lost styling because `_next` assets were blocked by Jekyll processing
+- **Status**: Resolved by adding a post-export script that generates `.nojekyll` during `npm run export`
+- **Resolution**: Run `npm run export` before deploying with `git subtree push --prefix out origin gh-pages`
+
 ### 2025-10-27
 - **Issue**: Claude Code approval dialogs don't have "Always Allow" option
 - **Status**: Workaround identified - use specialized tools instead of bash commands
