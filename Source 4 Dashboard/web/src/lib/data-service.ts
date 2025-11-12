@@ -21,9 +21,132 @@ export type ApiResponse<T> = {
   warning?: string;
 };
 
+export type SalesRecord = {
+  id: string;
+  date: string;
+  vendor: string;
+  rep: string;
+  invoiceTotal: number;
+  salesTotal: number;
+  orders: number;
+  orderQuantity: number;
+};
+
 // Operational Alerts
 export async function getOperationalAlerts(): Promise<ApiResponse<OperationalAlert[]>> {
   return { data: SAMPLE_ALERTS };
+}
+
+const SAMPLE_SALES_RECORDS: SalesRecord[] = [
+  {
+    id: "sample-1",
+    date: new Date().toISOString(),
+    vendor: "Vendor A",
+    rep: "Alice Johnson",
+    invoiceTotal: 45000,
+    salesTotal: 45000,
+    orders: 24,
+    orderQuantity: 24,
+  },
+  {
+    id: "sample-2",
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    vendor: "Vendor B",
+    rep: "Bob Smith",
+    invoiceTotal: 52000,
+    salesTotal: 52000,
+    orders: 28,
+    orderQuantity: 28,
+  },
+  {
+    id: "sample-3",
+    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    vendor: "Vendor C",
+    rep: "Carol Davis",
+    invoiceTotal: 61000,
+    salesTotal: 61000,
+    orders: 33,
+    orderQuantity: 33,
+  },
+  {
+    id: "sample-4",
+    date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
+    vendor: "Vendor A",
+    rep: "Alice Johnson",
+    invoiceTotal: 55000,
+    salesTotal: 55000,
+    orders: 29,
+    orderQuantity: 29,
+  },
+  {
+    id: "sample-5",
+    date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+    vendor: "Vendor B",
+    rep: "Bob Smith",
+    invoiceTotal: 67000,
+    salesTotal: 67000,
+    orders: 36,
+    orderQuantity: 36,
+  },
+];
+
+export async function getSalesRecords(limit = 6000): Promise<ApiResponse<SalesRecord[]>> {
+  try {
+    const { data, error } = await supabase
+      .from("all_time_sales")
+      .select("id, date, vendor, rep, invoice_total, sales_total, orders, order_quantity")
+      .order("date", { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      console.warn("Supabase error fetching sales records:", error);
+      return {
+        data: SAMPLE_SALES_RECORDS,
+        source: "sample",
+        error: error.message,
+        refreshedAt: new Date().toISOString(),
+      };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        data: SAMPLE_SALES_RECORDS,
+        source: "sample",
+        warning: "No sales records returned from Supabase",
+        refreshedAt: new Date().toISOString(),
+      };
+    }
+
+    const records: SalesRecord[] = data.map((row, index) => {
+      const rawDate = row.date as string | null;
+      const parsedDate = rawDate ? new Date(rawDate) : null;
+
+      return {
+        id: (row.id as string) ?? `record-${index}`,
+        date: parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString(),
+        vendor: (row.vendor as string) || "Unknown Vendor",
+        rep: (row.rep as string) || "Unknown Rep",
+        invoiceTotal: Number(row.invoice_total ?? row.sales_total ?? 0) || 0,
+        salesTotal: Number(row.sales_total ?? row.invoice_total ?? 0) || 0,
+        orders: Number(row.orders ?? row.order_quantity ?? 0) || 0,
+        orderQuantity: Number(row.order_quantity ?? row.orders ?? 0) || 0,
+      };
+    });
+
+    return {
+      data: records,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching sales records:", error);
+    return {
+      data: SAMPLE_SALES_RECORDS,
+      source: "sample",
+      error: error instanceof Error ? error.message : "Unknown error",
+      refreshedAt: new Date().toISOString(),
+    };
+  }
 }
 
 // Quotes
@@ -131,6 +254,7 @@ export async function getHomeRuns(): Promise<
         invoice: "INV-2024-001",
         rep: "Alice Johnson",
         closedAt: "2024-11-10",
+        closedAtIso: new Date("2024-11-10").toISOString(),
       },
       {
         id: "2",
@@ -142,6 +266,7 @@ export async function getHomeRuns(): Promise<
         invoice: "INV-2024-002",
         rep: "Bob Smith",
         closedAt: "2024-11-09",
+        closedAtIso: new Date("2024-11-09").toISOString(),
       },
       {
         id: "3",
@@ -153,6 +278,7 @@ export async function getHomeRuns(): Promise<
         invoice: "INV-2024-003",
         rep: "Carol Davis",
         closedAt: "2024-11-08",
+        closedAtIso: new Date("2024-11-08").toISOString(),
       },
     ],
     source: "sample" as const,
@@ -182,6 +308,7 @@ export async function getHomeRuns(): Promise<
       rep: string;
       value: number;
       closedAt: string;
+      closedAtIso: string;
       product: string;
       sales: number;
     };
@@ -198,12 +325,20 @@ export async function getHomeRuns(): Promise<
     data.forEach((row, index) => {
       const invoice = (row.invoice_number as string) ?? `unknown-${index}`;
       if (!aggregate.has(invoice)) {
+        const isoDate = (() => {
+          const raw = row.date as string | null;
+          if (!raw) return new Date().toISOString();
+          const parsed = new Date(raw);
+          return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+        })();
+
         aggregate.set(invoice, {
           invoice,
           vendor: (row.vendor as string) || "Unknown Vendor",
           rep: (row.rep as string) || "Unknown Rep",
           value: 0,
           closedAt: formatDate(row.date as string | null),
+          closedAtIso: isoDate,
           product: (row.description as string) || "High-Value Order",
           sales: 0,
         });
@@ -238,6 +373,7 @@ export async function getHomeRuns(): Promise<
         invoice: item.invoice,
         rep: item.rep,
         closedAt: item.closedAt,
+        closedAtIso: item.closedAtIso,
       }));
 
     if (homeRuns.length === 0) {
