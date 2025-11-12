@@ -8,8 +8,7 @@ import {
   ShoppingBag,
   Trophy,
   ArrowUp,
-  ArrowDown,
-  Filter
+  ArrowDown
 } from "lucide-react";
 import { getTopProducts } from "@/lib/data-service";
 
@@ -141,7 +140,7 @@ export default function TopProductsPage() {
           {/* Sort Dropdown */}
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as "revenue" | "orders" | "roi" | "profit")}
             className="px-3 py-2 border rounded-lg bg-card"
           >
             <option value="revenue">Sort by Revenue</option>

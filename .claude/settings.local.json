@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "Bash(env)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx gh-pages:*)",
+      "Bash(npx gh-pages-clean:*)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
