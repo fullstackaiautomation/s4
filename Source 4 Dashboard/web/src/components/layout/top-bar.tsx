@@ -1,22 +1,10 @@
 "use client";
 
-import { useMemo, Suspense } from "react";
+import { useMemo } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { SAMPLE_ALERTS, SAMPLE_QUOTES, SAMPLE_SKUS } from "@/lib/sample-data";
-import { OperationalAlert } from "@/lib/types";
-import { cn } from "@/lib/utils";
 import { useDashboardFilters } from "@/components/providers/dashboard-filters";
-
-function ThemeToggleSuspense() {
-  return (
-    <Suspense fallback={<div className="h-9 w-9" />}>
-      <ThemeToggle />
-    </Suspense>
-  );
-}
+import { SAMPLE_QUOTES, SAMPLE_SKUS } from "@/lib/sample-data";
 
 const TIME_RANGE_OPTIONS = [
   { label: "Last 7", value: "last-7" },
@@ -27,12 +15,11 @@ const TIME_RANGE_OPTIONS = [
 ];
 
 type TopBarProps = {
-  alerts?: OperationalAlert[];
   vendors?: string[];
   reps?: string[];
 };
 
-export function TopBar({ alerts = SAMPLE_ALERTS, vendors, reps }: TopBarProps) {
+export function TopBar({ vendors, reps }: TopBarProps) {
   const { timeRange, vendor, rep, setTimeRange, setVendor, setRep } = useDashboardFilters();
 
   const vendorOptions = useMemo(() => {
@@ -46,8 +33,6 @@ export function TopBar({ alerts = SAMPLE_ALERTS, vendors, reps }: TopBarProps) {
     if (reps && reps.length) return reps;
     return Array.from(new Set(SAMPLE_QUOTES.map((quote) => quote.rep)));
   }, [reps]);
-
-  const activeAlerts = alerts.slice(0, 3);
 
   return (
     <header className="sticky top-0 z-30 flex h-20 flex-col justify-center border-b border-border/80 bg-card/80 backdrop-blur-xl pt-6">
@@ -90,37 +75,9 @@ export function TopBar({ alerts = SAMPLE_ALERTS, vendors, reps }: TopBarProps) {
                 </option>
               ))}
             </select>
-            <ThemeToggleSuspense />
           </div>
         </div>
 
-        {activeAlerts.length ? (
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Operational Alerts
-            </div>
-            <div className="flex flex-col gap-2 lg:flex-row">
-              {activeAlerts.map((alert) => (
-                <div
-                  key={alert.id}
-                  className={cn(
-                    "flex items-center gap-2 rounded-md border px-3 py-2 text-xs shadow-subtle",
-                    alert.level === "error"
-                      ? "border-danger/40 bg-danger/5 text-danger"
-                      : alert.level === "warning"
-                        ? "border-warning/40 bg-warning/5 text-warning"
-                        : "border-primary/30 bg-primary/5 text-primary",
-                  )}
-                >
-                  <Badge variant="outline" className="uppercase">
-                    {alert.level}
-                  </Badge>
-                  <span>{alert.message}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </header>
   );

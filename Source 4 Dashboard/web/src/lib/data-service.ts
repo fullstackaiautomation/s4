@@ -11,7 +11,7 @@ import {
   SAMPLE_QUOTES,
   SAMPLE_SKUS,
 } from "./sample-data";
-import { supabase } from "./supabase/client";
+import { getSupabaseServerClient } from "./supabase/server";
 
 export type ApiResponse<T> = {
   data: T;
@@ -92,6 +92,7 @@ const SAMPLE_SALES_RECORDS: SalesRecord[] = [
 
 export async function getSalesRecords(limit = 6000): Promise<ApiResponse<SalesRecord[]>> {
   try {
+    const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("all_time_sales")
       .select("id, date, vendor, rep, invoice_total, sales_total, orders, order_quantity")
@@ -286,6 +287,7 @@ export async function getHomeRuns(): Promise<
   };
 
   try {
+    const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("all_time_sales")
       .select("invoice_number, vendor, rep, invoice_total, sales_total, date, description")
@@ -544,6 +546,7 @@ export async function getSalesSnapshots(): Promise<
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
+    const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("all_time_sales")
       .select("date, month, sales_total, invoice_total, orders, order_quantity, vendor, rep")
@@ -1140,6 +1143,7 @@ export async function getSkuAdSpendMonthlySummary(): Promise<
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
+    const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("sku_ad_spend")
       .select("month, ad_spend, revenue, impressions, clicks, conversions");
@@ -1235,6 +1239,7 @@ export async function getSkuAdSpendVendorSummary(): Promise<
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
+    const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("sku_ad_spend")
       .select("platform, ad_spend, revenue, clicks, impressions");
@@ -1333,6 +1338,7 @@ export async function getSkuAdSpendCategorySummary(): Promise<
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
+    const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("sku_ad_spend")
       .select("*")
@@ -1445,6 +1451,7 @@ export async function getTopProducts(
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
+    const supabase = await getSupabaseServerClient();
     let query = supabase
       .from("all_time_sales")
       .select("sku, description, vendor, product_category, overall_product_category, sales_total, profit_total, orders, roi, sales_each");
@@ -1629,6 +1636,7 @@ export async function getSkuAdSpendTopSkus(
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
+    const supabase = await getSupabaseServerClient();
     let query = supabase
       .from("sku_ad_spend")
       .select("month, sku, title, platform, ad_spend, revenue, impressions, clicks")

@@ -1,15 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NAV_SECTIONS } from "@/lib/navigation";
+import type { Role } from "@/lib/auth/roles";
+import { getNavSectionsForRole } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-export function MobileNav() {
+type MobileNavProps = {
+  role: Role;
+};
+
+export function MobileNav({ role }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const sections = useMemo(() => getNavSectionsForRole(role), [role]);
 
   return (
     <div className="lg:hidden">
@@ -35,7 +41,7 @@ export function MobileNav() {
             </div>
             <nav className="max-h-[calc(100vh-4rem)] overflow-y-auto p-4">
               <ul className="space-y-6">
-                {NAV_SECTIONS.map((section) => (
+                {sections.map((section) => (
                   <li key={section.title}>
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       {section.title}

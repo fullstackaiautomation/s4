@@ -11,7 +11,11 @@
       "Bash(git push)",
       "Bash(git remote set-url:*)",
       "Skill(browser-automation:browser-automation)",
-      "Bash(npm run dev)"
+      "Bash(npm run dev)",
+      "Bash(set NEXT_PUBLIC_SUPABASE_URL=https://tcryasuisocelektmrmb.supabase.co)",
+      "Bash(set SUPABASE_SERVICE_ROLE_KEY:*)",
+      "Bash(npx tsx:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []

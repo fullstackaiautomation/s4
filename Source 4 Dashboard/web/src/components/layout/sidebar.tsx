@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Menu, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, Menu, X, Sun, Moon, User } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
-import { NAV_SECTIONS } from "@/lib/navigation";
+import type { Role } from "@/lib/auth/roles";
+import { getRoleLabel } from "@/lib/auth/roles";
+import { getNavSectionsForRole } from "@/lib/navigation";
+import { useTheme } from "@/components/providers/theme-provider";
 import { cn } from "@/lib/utils";
 
-export function Sidebar() {
+type SidebarProps = {
+  role: Role;
+  userEmail: string;
+};
+
+export function Sidebar({ role, userEmail }: SidebarProps) {
+  const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<string[]>(
-    NAV_SECTIONS.map((section) => section.title)
-  );
+  const sections = useMemo(() => getNavSectionsForRole(role), [role]);
+  const sectionTitles = useMemo(() => sections.map((section) => section.title), [sections]);
+  const [expandedSections, setExpandedSections] = useState<string[]>(sectionTitles);
+
+  useEffect(() => {
+    setExpandedSections(sectionTitles);
+  }, [sectionTitles]);
 
   const toggleSection = (sectionTitle: string) => {
     setExpandedSections((prev) =>
@@ -58,7 +71,7 @@ export function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-4">
         <ul className="flex flex-col gap-1">
-          {NAV_SECTIONS.map((section, sectionIndex) => {
+          {sections.map((section, sectionIndex) => {
             const isExpanded = expandedSections.includes(section.title);
             const SectionIcon = section.icon;
 
@@ -169,16 +182,52 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-border/60 p-3">
+      {/* Footer - User Info & Theme Toggle */}
+      <div className="border-t border-border/60 p-3 space-y-2">
         {!isCollapsed ? (
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-muted-foreground">Version 2.0</p>
-            <p className="text-xs text-muted-foreground/60">© 2025 Source 4 Industries</p>
-          </div>
+          <>
+            <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-muted/30">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+                <User className="h-4 w-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
+                <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
+              </div>
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+            >
+              {theme === "dark" ? (
+                <>
+                  <Sun className="h-4 w-4" />
+                  <span>Light Mode</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="h-4 w-4" />
+                  <span>Dark Mode</span>
+                </>
+              )}
+            </button>
+          </>
         ) : (
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">v2.0</p>
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <User className="h-4 w-4" />
+            </div>
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              title={theme === "dark" ? "Light Mode" : "Dark Mode"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
+            </button>
           </div>
         )}
       </div>

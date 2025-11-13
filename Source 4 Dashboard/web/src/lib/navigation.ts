@@ -22,7 +22,9 @@ import {
   KeyRound,
   Palette,
   LucideIcon
-} from 'lucide-react';
+} from "lucide-react";
+
+import { Role, coerceRole, minimumRoleForPath, roleMeetsMinimum } from "@/lib/auth/roles";
 
 export type NavItem = {
   title: string;
@@ -30,6 +32,7 @@ export type NavItem = {
   status: "active" | "future" | "beta";
   icon?: LucideIcon;
   badge?: string;
+  minRole?: Role;
 };
 
 export type NavSection = {
@@ -47,33 +50,38 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Sales Overview",
         href: "/dashboards/sales",
         status: "active",
-        icon: TrendingUp
+        icon: TrendingUp,
+        minRole: "employee",
       },
       {
         title: "Rep Performance",
         href: "/dashboards/reps",
         status: "active",
-        icon: Users
+        icon: Users,
+        minRole: "employee",
       },
       {
         title: "Ad Spend",
         href: "/dashboards/product-ad-spend",
         status: "active",
         icon: DollarSign,
-        badge: "New"
+        badge: "New",
+        minRole: "employee",
       },
       {
         title: "Top Products",
         href: "/dashboards/top-products",
         status: "active",
         icon: Trophy,
-        badge: "Live"
+        badge: "Live",
+        minRole: "employee",
       },
       {
         title: "Home Run Orders",
         href: "/dashboards/home-runs",
         status: "active",
-        icon: Package
+        icon: Package,
+        minRole: "employee",
       },
     ],
   },
@@ -85,14 +93,16 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Quotes",
         href: "/sales/quotes",
         status: "active",
-        icon: FileText
+        icon: FileText,
+        minRole: "employee",
       },
       {
         title: "Abandoned Carts",
         href: "/sales/abandoned-carts",
         status: "active",
         icon: ShoppingCart,
-        badge: "12"
+        badge: "12",
+        minRole: "employee",
       },
     ],
   },
@@ -104,31 +114,36 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Blog",
         href: "/marketing/blog",
         status: "active",
-        icon: BookOpen
+        icon: BookOpen,
+        minRole: "employee",
       },
       {
         title: "Email Campaigns",
         href: "/marketing/email",
         status: "active",
-        icon: Mail
+        icon: Mail,
+        minRole: "employee",
       },
       {
         title: "SMS",
         href: "/marketing/sms",
         status: "active",
-        icon: MessageSquare
+        icon: MessageSquare,
+        minRole: "employee",
       },
       {
         title: "SEO",
         href: "/marketing/seo",
         status: "active",
-        icon: Search
+        icon: Search,
+        minRole: "employee",
       },
       {
         title: "Paid Ads",
         href: "/marketing/google-bing-ads",
         status: "active",
-        icon: MousePointer2
+        icon: MousePointer2,
+        minRole: "employee",
       },
     ],
   },
@@ -140,13 +155,15 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Monthly Reports",
         href: "/uploads/monthly-dashboard",
         status: "active",
-        icon: FileUp
+        icon: FileUp,
+        minRole: "admin",
       },
       {
         title: "Reviews",
         href: "/uploads/reviews",
         status: "active",
-        icon: Star
+        icon: Star,
+        minRole: "admin",
       },
     ],
   },
@@ -158,13 +175,15 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Dashboard",
         href: "/automations/dashboard",
         status: "active",
-        icon: LayoutDashboard
+        icon: LayoutDashboard,
+        minRole: "admin",
       },
       {
         title: "Projects",
         href: "/automations/projects",
         status: "active",
-        icon: FolderKanban
+        icon: FolderKanban,
+        minRole: "admin",
       },
     ],
   },
@@ -176,20 +195,36 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "SKU Master",
         href: "/admin/sku-master",
         status: "active",
-        icon: Package
+        icon: Package,
+        minRole: "admin",
       },
       {
         title: "Access Control",
         href: "/admin/logins",
         status: "active",
-        icon: KeyRound
+        icon: KeyRound,
+        minRole: "owner",
       },
       {
         title: "Branding",
         href: "/admin/branding",
         status: "future",
-        icon: Palette
+        icon: Palette,
+        minRole: "owner",
       },
     ],
   },
 ];
+
+export function getNavSectionsForRole(roleInput: unknown): NavSection[] {
+  const role = coerceRole(roleInput);
+  return NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items
+      .filter((item) => item.status !== "future")
+      .filter((item) => {
+        const minRole = item.minRole ?? minimumRoleForPath(item.href) ?? "employee";
+        return roleMeetsMinimum(role, minRole);
+      }),
+  })).filter((section) => section.items.length > 0);
+}
