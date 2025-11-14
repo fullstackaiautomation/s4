@@ -4,10 +4,10 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { DashboardFiltersProvider } from "@/components/providers/dashboard-filters";
-import { getNavSectionsForRole } from "@/lib/navigation";
 import { getQuotes, getSkuMaster } from "@/lib/data-service";
-import { signOutAction } from "@/lib/auth/actions";
 import { requireAuthContext } from "@/lib/auth/session";
+
+export const dynamic = 'force-dynamic';
 
 type DashboardLayoutProps = {
   children: ReactNode;
