@@ -29,7 +29,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
 lib64/
 parts/
 sdist/
@@ -41,6 +40,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# But allow TypeScript/JavaScript lib directories in src
+!src/lib/
+!**/src/lib/**
 
 # Node
 node_modules/
@@ -70,3 +73,4 @@ config/secrets/*
 
 # Local settings
 .claude/settings.local.json
+.vercel
