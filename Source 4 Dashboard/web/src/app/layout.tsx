@@ -18,6 +18,9 @@ export const metadata: Metadata = {
   title: "Source 4 Dashboard",
   description:
     "Unified analytics and automation control center for Source 4 Industries",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
