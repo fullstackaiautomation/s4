@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "cd \"Source 4 Dashboard/web\" && npm run build",
+  "installCommand": "cd \"Source 4 Dashboard/web\" && npm install",
+  "outputDirectory": "Source 4 Dashboard/web/.next"
+}
