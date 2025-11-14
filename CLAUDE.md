@@ -71,12 +71,50 @@ Source 4 Industries/
 - Node.js/npm: For dashboard and web applications
 - Git: Version control
 
+## Deployment
+
+### Vercel Deployment (Production)
+
+The Source 4 Dashboard is deployed to Vercel and automatically deploys on every push to `main` branch.
+
+**Production URL:** https://source-4-industries.vercel.app
+
+**Vercel Project Configuration:**
+- Project Name: `source-4-industries`
+- Root Directory: `Source 4 Dashboard/web`
+- Framework: Next.js (auto-detected)
+- Build Command: Automatic (uses `npm run build`)
+- Install Command: `npm install --legacy-peer-deps` (configured in `vercel.json`)
+
+**To deploy updates:**
+1. Make your code changes
+2. Commit and push to `main` branch: `git add . && git commit -m "description" && git push`
+3. Vercel automatically builds and deploys (usually takes 30-60 seconds)
+4. Check deployment status: `cd "Source 4 Dashboard/web" && vercel ls`
+
+**Monitor deployments:**
+```bash
+cd "Source 4 Dashboard/web"
+vercel ls                    # List recent deployments
+vercel inspect <url> --logs  # View build logs for specific deployment
+```
+
+**Configuration files:**
+- `Source 4 Dashboard/web/vercel.json` - Vercel build settings
+- `Source 4 Dashboard/web/next.config.ts` - Next.js configuration
+- `Source 4 Dashboard/DEPLOYMENT.md` - Detailed deployment documentation
+
+**Note:** On a new machine, link to the Vercel project:
+```bash
+cd "Source 4 Dashboard/web"
+vercel link --project source-4-industries --yes
+```
+
 ## Important Notes
 
 - This is a Windows development environment
 - Multiple sub-projects with different purposes
 - Documentation should be kept up-to-date in progress.md, decisions.md, and bugs.md
-- GitHub Pages deployment for the dashboard uses `npm run export`, which runs `next build` and a post-export script that writes `.nojekyll` so `_next` assets load correctly in production
 
 ## Git Sync Workflow
 
@@ -100,7 +138,13 @@ This automatically stages, commits, and pushes all changes with a timestamp.
 
 This project is hosted on GitHub:
 - **Repository:** https://github.com/fullstackaiautomation/s4dashboard
-- **Branch:** gh-pages
+- **Branch:** main
+- **Deployment:** Vercel (auto-deploys from main branch)
 
 **Note on .gitignore:**
 Sensitive files (`.env`, `credentials.json`, API keys) are excluded from git tracking via `.gitignore`. Each machine maintains its own copy of these files locally.
+
+**Important ignored directories:**
+- `lib/` (Python) is ignored, BUT `src/lib/` (TypeScript) is explicitly allowed
+- `.vercel/` project link (recreate on each machine with `vercel link`)
+- `node_modules/`, build outputs, and package-lock.json
