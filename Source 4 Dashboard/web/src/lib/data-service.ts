@@ -30,6 +30,7 @@ export type SalesRecord = {
   salesTotal: number;
   orders: number;
   orderQuantity: number;
+  profitTotal: number;
 };
 
 // Operational Alerts
@@ -41,75 +42,52 @@ const SAMPLE_SALES_RECORDS: SalesRecord[] = [
   {
     id: "sample-1",
     date: new Date().toISOString(),
-    vendor: "Vendor A",
-    rep: "Alice Johnson",
+    vendor: "Sample Vendor",
+    rep: "Sample Rep",
     invoiceTotal: 45000,
     salesTotal: 45000,
     orders: 24,
     orderQuantity: 24,
   },
-  {
-    id: "sample-2",
-    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    vendor: "Vendor B",
-    rep: "Bob Smith",
-    invoiceTotal: 52000,
-    salesTotal: 52000,
-    orders: 28,
-    orderQuantity: 28,
-  },
-  {
-    id: "sample-3",
-    date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-    vendor: "Vendor C",
-    rep: "Carol Davis",
-    invoiceTotal: 61000,
-    salesTotal: 61000,
-    orders: 33,
-    orderQuantity: 33,
-  },
-  {
-    id: "sample-4",
-    date: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString(),
-    vendor: "Vendor A",
-    rep: "Alice Johnson",
-    invoiceTotal: 55000,
-    salesTotal: 55000,
-    orders: 29,
-    orderQuantity: 29,
-  },
-  {
-    id: "sample-5",
-    date: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
-    vendor: "Vendor B",
-    rep: "Bob Smith",
-    invoiceTotal: 67000,
-    salesTotal: 67000,
-    orders: 36,
-    orderQuantity: 36,
-  },
 ];
 
-export async function getSalesRecords(limit = 6000): Promise<ApiResponse<SalesRecord[]>> {
+export async function getSalesRecords(limit?: number): Promise<ApiResponse<SalesRecord[]>> {
   try {
     const supabase = await getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from("all_time_sales")
-      .select("id, date, vendor, rep, invoice_total, sales_total, orders, order_quantity")
-      .order("date", { ascending: true })
-      .limit(limit);
+    const pageSize = 1000;
+    let from = 0;
+    let hasMore = true;
+    const allRows: any[] = [];
+    const maxRows = limit ?? Number.MAX_SAFE_INTEGER;
 
-    if (error) {
-      console.warn("Supabase error fetching sales records:", error);
-      return {
-        data: SAMPLE_SALES_RECORDS,
-        source: "sample",
-        error: error.message,
-        refreshedAt: new Date().toISOString(),
-      };
+    while (hasMore && allRows.length < maxRows) {
+      const to = from + pageSize - 1;
+      const { data, error } = await supabase
+        .from("all_time_sales")
+        .select("id, date, vendor, rep, invoice_total, sales_total, orders, order_quantity, profit_total")
+        .order("date", { ascending: true })
+        .range(from, to);
+
+      if (error) {
+        console.warn("Supabase error fetching sales records:", error);
+        return {
+          data: SAMPLE_SALES_RECORDS,
+          source: "sample",
+          error: error.message,
+          refreshedAt: new Date().toISOString(),
+        };
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allRows.push(...data);
+      hasMore = data.length === pageSize && allRows.length < maxRows;
+      from += pageSize;
     }
 
-    if (!data || data.length === 0) {
+    if (!allRows.length) {
       return {
         data: SAMPLE_SALES_RECORDS,
         source: "sample",
@@ -118,7 +96,9 @@ export async function getSalesRecords(limit = 6000): Promise<ApiResponse<SalesRe
       };
     }
 
-    const records: SalesRecord[] = data.map((row, index) => {
+    const rows = limit ? allRows.slice(-limit) : allRows;
+
+    const records: SalesRecord[] = rows.map((row, index) => {
       const rawDate = row.date as string | null;
       const parsedDate = rawDate ? new Date(rawDate) : null;
 
@@ -131,6 +111,7 @@ export async function getSalesRecords(limit = 6000): Promise<ApiResponse<SalesRe
         salesTotal: Number(row.sales_total ?? row.invoice_total ?? 0) || 0,
         orders: Number(row.orders ?? row.order_quantity ?? 0) || 0,
         orderQuantity: Number(row.order_quantity ?? row.orders ?? 0) || 0,
+          profitTotal: Number(row.profit_total ?? 0) || 0,
       };
     });
 
@@ -152,7 +133,92 @@ export async function getSalesRecords(limit = 6000): Promise<ApiResponse<SalesRe
 
 // Quotes
 export async function getQuotes(): Promise<ApiResponse<Quote[]> & { refreshedAt: string }> {
-  return { data: SAMPLE_QUOTES, refreshedAt: new Date().toISOString() };
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const { data, error } = await supabase
+      .from("all_quotes")
+      .select("task_id, quote_number, vendor, rep, amount, quote_status, created_at, inquiry_date, turned_to_order")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.warn("Supabase error fetching quotes:", error);
+      return {
+        data: SAMPLE_QUOTES,
+        source: "sample",
+        error: error.message,
+        refreshedAt: new Date().toISOString(),
+      };
+    }
+
+    if (!data || data.length === 0) {
+      return {
+        data: SAMPLE_QUOTES,
+        source: "sample",
+        warning: "No quotes returned from Supabase",
+        refreshedAt: new Date().toISOString(),
+      };
+    }
+
+    // Map database records to Quote type
+    const quotes: Quote[] = data.map((row, index) => {
+      const createdAtDate = row.created_at ? new Date(row.created_at) : null;
+      const inquiryDateParsed = row.inquiry_date ? new Date(row.inquiry_date) : null;
+
+      // Determine status based on available fields
+      let status: "open" | "won" | "lost" = "open";
+      const statusField = (row.quote_status as string)?.toLowerCase() || "";
+
+      if (row.turned_to_order || statusField.includes("won") || statusField.includes("order")) {
+        status = "won";
+      } else if (statusField.includes("lost") || statusField.includes("dead") || statusField.includes("cancelled")) {
+        status = "lost";
+      }
+
+      // Parse close date safely
+      let closeDate: string | undefined;
+      if (row.turned_to_order) {
+        try {
+          const closeDateParsed = new Date(row.turned_to_order);
+          if (!Number.isNaN(closeDateParsed.getTime())) {
+            closeDate = closeDateParsed.toISOString();
+          }
+        } catch {
+          // Invalid date, leave undefined
+        }
+      }
+
+      return {
+        id: row.quote_number || row.task_id || `quote-${index}`,
+        vendor: (row.vendor as string) || "Unknown Vendor",
+        rep: (row.rep as string) || "Unknown Rep",
+        amount: Number(row.amount ?? 0) || 0,
+        value: Number(row.amount ?? 0) || 0,
+        date: inquiryDateParsed && !Number.isNaN(inquiryDateParsed.getTime())
+          ? inquiryDateParsed.toISOString()
+          : new Date().toISOString(),
+        createdAt: createdAtDate && !Number.isNaN(createdAtDate.getTime())
+          ? createdAtDate.toISOString()
+          : new Date().toISOString(),
+        closeDate,
+        status,
+      };
+    });
+
+    return {
+      data: quotes,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching quotes:", error);
+    return {
+      data: SAMPLE_QUOTES,
+      source: "sample",
+      error: error instanceof Error ? error.message : "Unknown error",
+      refreshedAt: new Date().toISOString(),
+    };
+  }
 }
 
 // SKU Master
@@ -362,9 +428,8 @@ export async function getHomeRuns(): Promise<
     });
 
     const homeRuns = Array.from(aggregate.values())
-      .filter((item) => item.value > 0)
+      .filter((item) => item.value >= 10000)
       .sort((a, b) => b.value - a.value)
-      .slice(0, 10)
       .map((item, idx) => ({
         id: `${item.invoice}-${idx}`,
         product: item.product,
@@ -543,25 +608,41 @@ export async function getSalesSnapshots(): Promise<
   };
 
   try {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 11, 1);
-
     const supabase = await getSupabaseServerClient();
-    const { data, error } = await supabase
-      .from("all_time_sales")
-      .select("date, month, sales_total, invoice_total, orders, order_quantity, vendor, rep")
-      .gte("date", start.toISOString())
-      .order("date", { ascending: true })
-      .limit(6000);
 
-    if (error) {
-      console.warn("Supabase error fetching sales snapshots:", error);
-      return getFallbackResponse(error.message);
+    // Supabase enforces a server-side max of 1000 rows per query
+    // We need to fetch ALL rows using pagination
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("all_time_sales")
+        .select("date, month, sales_total, invoice_total, orders, order_quantity, vendor, rep")
+        .order("date", { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.warn("Supabase error fetching sales snapshots:", error);
+        return getFallbackResponse(error.message);
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allData = allData.concat(data);
+      hasMore = data.length === pageSize;
+      from += pageSize;
     }
 
-    if (!data || data.length === 0) {
+    if (allData.length === 0) {
       return getFallbackResponse();
     }
+
+    console.log(`[getSalesSnapshots] ✅ Fetched ${allData.length} rows from Supabase using pagination`);
 
     type Bucket = {
       sortKey: string;
@@ -574,7 +655,7 @@ export async function getSalesSnapshots(): Promise<
 
     const buckets = new Map<string, Bucket>();
 
-    data.forEach((row) => {
+    allData.forEach((row) => {
       const monthKey = typeof row.month === "string" && /^\d{4}-\d{2}$/.test(row.month)
         ? row.month
         : row.date
@@ -639,6 +720,8 @@ export async function getSalesSnapshots(): Promise<
     if (snapshots.length === 0) {
       return getFallbackResponse();
     }
+
+    console.log(`[getSalesSnapshots] ✅ Aggregated into ${snapshots.length} months: ${snapshots[0]?.date} → ${snapshots[snapshots.length - 1]?.date}`);
 
     return {
       data: snapshots,
