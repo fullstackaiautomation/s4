@@ -55,7 +55,7 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
 
   const filteredTopSkus = useMemo(() => {
     return topSkus.data.filter((row) => {
-      if (vendor && row.platform !== vendor) return false;
+      if (vendor && row.vendor !== vendor) return false;
       return withinRange(monthToDate(row.month), rangeStart, rangeEnd);
     });
   }, [rangeEnd, rangeStart, topSkus.data, vendor]);
@@ -69,26 +69,36 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
     const aggregated = new Map<string, {
       month: string;
       totalAdSpend: number;
-      totalRevenue: number;
+      totalSalesRevenue: number;
+      totalSalesProfit: number;
       totalImpressions: number;
       totalClicks: number;
       totalConversions: number;
+      totalOrders: number;
+      totalOrderQuantity: number;
     }>();
 
     filteredTopSkus.forEach((row) => {
       const bucket = aggregated.get(row.month) ?? {
         month: row.month,
         totalAdSpend: 0,
-        totalRevenue: 0,
+        totalSalesRevenue: 0,
+        totalSalesProfit: 0,
         totalImpressions: 0,
         totalClicks: 0,
         totalConversions: 0,
+        totalOrders: 0,
+        totalOrderQuantity: 0,
       };
 
       bucket.totalAdSpend += row.adSpend ?? 0;
-      bucket.totalRevenue += row.revenue ?? 0;
+      bucket.totalSalesRevenue += row.salesRevenue ?? 0;
+      bucket.totalSalesProfit += row.salesProfit ?? 0;
       bucket.totalImpressions += row.impressions ?? 0;
       bucket.totalClicks += row.clicks ?? 0;
+      bucket.totalConversions += row.conversions ?? 0;
+      bucket.totalOrders += row.orders ?? 0;
+      bucket.totalOrderQuantity += row.orderQuantity ?? 0;
       aggregated.set(row.month, bucket);
     });
 
@@ -118,16 +128,28 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
     .reduce(
       (acc, row) => {
         acc.spend += row.totalAdSpend;
-        acc.revenue += row.totalRevenue;
+        acc.salesRevenue += row.totalSalesRevenue ?? 0;
+        acc.salesProfit += row.totalSalesProfit ?? 0;
         acc.impressions += row.totalImpressions ?? 0;
         acc.clicks += row.totalClicks ?? 0;
         acc.conversions += row.totalConversions ?? 0;
+        acc.orders += row.totalOrders ?? 0;
+        acc.orderQuantity += row.totalOrderQuantity ?? 0;
         return acc;
       },
-      { spend: 0, revenue: 0, impressions: 0, clicks: 0, conversions: 0 },
+      {
+        spend: 0,
+        salesRevenue: 0,
+        salesProfit: 0,
+        impressions: 0,
+        clicks: 0,
+        conversions: 0,
+        orders: 0,
+        orderQuantity: 0,
+      },
     );
 
-  const blendedRoas = latestTotals.spend > 0 ? latestTotals.revenue / latestTotals.spend : 0;
+  const blendedRoas = latestTotals.spend > 0 ? latestTotals.salesRevenue / latestTotals.spend : 0;
   const avgCpc = latestTotals.clicks > 0 ? latestTotals.spend / latestTotals.clicks : 0;
   const avgCtr = latestTotals.impressions > 0 ? latestTotals.clicks / latestTotals.impressions : 0;
 
@@ -136,7 +158,7 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
       return filteredTopSkus.length ? 1 : 0;
     }
     const set = new Set<string>();
-    filteredTopSkus.forEach((row) => set.add(row.platform));
+    filteredTopSkus.forEach((row) => set.add(row.vendor));
     if (set.size === 0) {
       return filteredVendorSummary.length;
     }
@@ -149,7 +171,7 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
       .sort((a, b) => a.month.localeCompare(b.month))
       .map((bucket) => ({
         date: bucket.month,
-        value: bucket.totalRevenue,
+        value: bucket.totalSalesRevenue ?? 0,
         secondary: bucket.totalAdSpend,
       }));
   }, [sortedMonthly]);
@@ -171,7 +193,7 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
         />
         <MetricTile
           label="Monthly Revenue"
-          value={formatCurrency(latestTotals.revenue)}
+          value={formatCurrency(latestTotals.salesRevenue)}
           delta={{
             value: latestTotals.spend ? `${blendedRoas.toFixed(1)}x ROAS` : "Awaiting spend",
             direction: blendedRoas >= 4 ? "up" : blendedRoas > 0 ? "flat" : "down",
@@ -228,7 +250,7 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
                 <TableRow key={entry.vendor}>
                   <TableCell className="font-medium">{entry.vendor}</TableCell>
                   <TableCell className="text-right">{formatCurrency(entry.totalAdSpend)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(entry.totalRevenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(entry.totalSalesRevenue ?? 0)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(entry.avgCpc ?? 0)}</TableCell>
                   <TableCell className="text-right">{formatPercent((entry.avgCtrPercent ?? 0) / 100)}</TableCell>
                 </TableRow>
@@ -266,7 +288,7 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
                 <TableRow key={entry.productCategory}>
                   <TableCell className="font-medium">{entry.productCategory}</TableCell>
                   <TableCell className="text-right">{formatCurrency(entry.totalAdSpend)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(entry.totalRevenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(entry.totalSalesRevenue ?? 0)}</TableCell>
                   <TableCell className="text-right">{formatNumber(entry.totalConversions)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(entry.avgAdSpendPerRecord)}</TableCell>
                 </TableRow>
@@ -295,24 +317,24 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
             <TableRow>
               <TableHeadCell>SKU</TableHeadCell>
               <TableHeadCell>Title</TableHeadCell>
-              <TableHeadCell>Platform</TableHeadCell>
+              <TableHeadCell>Vendor</TableHeadCell>
               <TableHeadCell className="text-right">Spend</TableHeadCell>
-              <TableHeadCell className="text-right">Revenue</TableHeadCell>
+              <TableHeadCell className="text-right">Sales Revenue</TableHeadCell>
               <TableHeadCell className="text-right">ROAS</TableHeadCell>
               <TableHeadCell className="text-right">CTR</TableHeadCell>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredTopSkus.map((sku) => {
-              const roas = sku.adSpend > 0 && sku.revenue ? sku.revenue / sku.adSpend : null;
+              const roas = sku.adSpend > 0 && sku.salesRevenue ? sku.salesRevenue / sku.adSpend : null;
               const ctr = sku.ctr ?? (sku.impressions && sku.clicks ? sku.clicks / sku.impressions : null);
               return (
-                <TableRow key={`${sku.month}-${sku.sku}-${sku.platform}`}>
+                <TableRow key={`${sku.month}-${sku.sku}-${sku.vendor}`}>
                   <TableCell className="font-medium">{sku.sku}</TableCell>
                   <TableCell>{sku.title}</TableCell>
-                  <TableCell>{sku.platform}</TableCell>
+                  <TableCell>{sku.vendor}</TableCell>
                   <TableCell className="text-right">{formatCurrency(sku.adSpend)}</TableCell>
-                  <TableCell className="text-right">{sku.revenue != null ? formatCurrency(sku.revenue) : "—"}</TableCell>
+                  <TableCell className="text-right">{sku.salesRevenue != null ? formatCurrency(sku.salesRevenue) : "—"}</TableCell>
                   <TableCell className="text-right">{roas != null ? `${roas.toFixed(1)}x` : "—"}</TableCell>
                   <TableCell className="text-right">{ctr != null ? formatPercent(ctr) : "—"}</TableCell>
                 </TableRow>

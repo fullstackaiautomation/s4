@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Menu, Sun, Moon, User } from "lucide-react";
+import { ChevronRight, Sun, Moon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { Role } from "@/lib/auth/roles";
@@ -20,7 +20,7 @@ type SidebarProps = {
 export function Sidebar({ role, userEmail }: SidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed] = useState(false);
   const sections = useMemo(() => getNavSectionsForRole(role), [role]);
   const sectionTitles = useMemo(() => sections.map((section) => section.title), [sections]);
   const [expandedSections, setExpandedSections] = useState<string[]>(sectionTitles);

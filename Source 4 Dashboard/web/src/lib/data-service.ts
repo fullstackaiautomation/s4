@@ -1218,18 +1218,25 @@ export async function getSkuAdSpendMonthlySummary(): Promise<
     Array<{
       month: string;
       totalAdSpend: number;
-      totalRevenue: number;
+      totalSalesRevenue: number;
+      totalSalesProfit: number;
       totalImpressions: number;
       totalClicks: number;
       totalConversions: number;
+      totalOrders: number;
+      totalOrderQuantity: number;
+      totalAttributedRevenue: number;
     }>
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
     const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
-      .from("sku_ad_spend")
-      .select("month, ad_spend, revenue, impressions, clicks, conversions");
+      .from("sku_sales_ad_spend_monthly_summary")
+      .select(
+        "month, total_ad_spend, total_sales_revenue, total_sales_profit, total_impressions, total_clicks, total_conversions, total_orders, total_order_quantity, total_attributed_revenue",
+      )
+      .order("month", { ascending: false });
 
     if (error) {
       console.warn("Supabase error fetching monthly summary:", error);
@@ -1239,26 +1246,38 @@ export async function getSkuAdSpendMonthlySummary(): Promise<
           {
             month: "2024-11",
             totalAdSpend: 25000,
-            totalRevenue: 125000,
+            totalSalesRevenue: 118500,
+            totalSalesProfit: 42800,
             totalImpressions: 500000,
             totalClicks: 12500,
             totalConversions: 850,
+            totalOrders: 640,
+            totalOrderQuantity: 948,
+            totalAttributedRevenue: 40500,
           },
           {
             month: "2024-10",
             totalAdSpend: 22000,
-            totalRevenue: 110000,
+            totalSalesRevenue: 101200,
+            totalSalesProfit: 37200,
             totalImpressions: 480000,
             totalClicks: 11200,
             totalConversions: 780,
+            totalOrders: 610,
+            totalOrderQuantity: 903,
+            totalAttributedRevenue: 36100,
           },
           {
             month: "2024-09",
             totalAdSpend: 20000,
-            totalRevenue: 95000,
+            totalSalesRevenue: 89000,
+            totalSalesProfit: 33100,
             totalImpressions: 420000,
             totalClicks: 10080,
             totalConversions: 650,
+            totalOrders: 575,
+            totalOrderQuantity: 812,
+            totalAttributedRevenue: 29850,
           },
         ],
         source: "sample",
@@ -1267,31 +1286,18 @@ export async function getSkuAdSpendMonthlySummary(): Promise<
       };
     }
 
-    // Aggregate by month
-    const aggregated = new Map<string, any>();
-    data?.forEach(row => {
-      const month = row.month;
-      if (!aggregated.has(month)) {
-        aggregated.set(month, {
-          month,
-          totalAdSpend: 0,
-          totalRevenue: 0,
-          totalImpressions: 0,
-          totalClicks: 0,
-          totalConversions: 0,
-        });
-      }
-      const agg = aggregated.get(month)!;
-      agg.totalAdSpend += row.ad_spend || 0;
-      agg.totalRevenue += row.revenue || 0;
-      agg.totalImpressions += row.impressions || 0;
-      agg.totalClicks += row.clicks || 0;
-      agg.totalConversions += row.conversions || 0;
-    });
-
-    const result = Array.from(aggregated.values()).sort((a, b) =>
-      b.month.localeCompare(a.month)
-    );
+    const result = (data ?? []).map((row) => ({
+      month: row.month,
+      totalAdSpend: Number(row.total_ad_spend ?? 0),
+      totalSalesRevenue: Number(row.total_sales_revenue ?? 0),
+      totalSalesProfit: Number(row.total_sales_profit ?? 0),
+      totalImpressions: Number(row.total_impressions ?? 0),
+      totalClicks: Number(row.total_clicks ?? 0),
+      totalConversions: Number(row.total_conversions ?? 0),
+      totalOrders: Number(row.total_orders ?? 0),
+      totalOrderQuantity: Number(row.total_order_quantity ?? 0),
+      totalAttributedRevenue: Number(row.total_attributed_revenue ?? 0),
+    }));
 
     return {
       data: result,
@@ -1315,17 +1321,27 @@ export async function getSkuAdSpendVendorSummary(): Promise<
     Array<{
       vendor: string;
       totalAdSpend: number;
-      totalRevenue: number;
+      totalSalesRevenue: number;
+      totalSalesProfit: number;
       avgCpc?: number;
       avgCtrPercent?: number;
+      totalImpressions: number;
+      totalClicks: number;
+      totalConversions: number;
+      totalOrders: number;
+      totalOrderQuantity: number;
+      totalAttributedRevenue: number;
     }>
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
     const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
-      .from("sku_ad_spend")
-      .select("platform, ad_spend, revenue, clicks, impressions");
+      .from("sku_sales_ad_spend_vendor_summary")
+      .select(
+        "vendor, total_ad_spend, total_sales_revenue, total_sales_profit, total_impressions, total_clicks, total_conversions, total_orders, total_order_quantity, total_attributed_revenue, avg_cpc, avg_ctr_percent",
+      )
+      .order("total_ad_spend", { ascending: false });
 
     if (error) {
       console.warn("Supabase error fetching vendor summary:", error);
@@ -1335,23 +1351,44 @@ export async function getSkuAdSpendVendorSummary(): Promise<
           {
             vendor: "Amazon",
             totalAdSpend: 12000,
-            totalRevenue: 60000,
+            totalSalesRevenue: 54000,
+            totalSalesProfit: 19800,
             avgCpc: 0.96,
             avgCtrPercent: 2.5,
+            totalImpressions: 180000,
+            totalClicks: 12500,
+            totalConversions: 320,
+            totalOrders: 210,
+            totalOrderQuantity: 315,
+            totalAttributedRevenue: 18250,
           },
           {
             vendor: "Google Ads",
             totalAdSpend: 8000,
-            totalRevenue: 48000,
+            totalSalesRevenue: 42200,
+            totalSalesProfit: 15400,
             avgCpc: 0.64,
             avgCtrPercent: 1.8,
+            totalImpressions: 120000,
+            totalClicks: 9000,
+            totalConversions: 240,
+            totalOrders: 185,
+            totalOrderQuantity: 268,
+            totalAttributedRevenue: 15000,
           },
           {
             vendor: "Walmart",
             totalAdSpend: 5000,
-            totalRevenue: 17000,
+            totalSalesRevenue: 15600,
+            totalSalesProfit: 5200,
             avgCpc: 0.4,
             avgCtrPercent: 1.2,
+            totalImpressions: 78000,
+            totalClicks: 5600,
+            totalConversions: 140,
+            totalOrders: 96,
+            totalOrderQuantity: 143,
+            totalAttributedRevenue: 6200,
           },
         ],
         source: "sample",
@@ -1360,37 +1397,20 @@ export async function getSkuAdSpendVendorSummary(): Promise<
       };
     }
 
-    // Aggregate by platform
-    const aggregated = new Map<string, any>();
-    data?.forEach(row => {
-      const vendor = row.platform;
-      if (!aggregated.has(vendor)) {
-        aggregated.set(vendor, {
-          vendor,
-          totalAdSpend: 0,
-          totalRevenue: 0,
-          totalClicks: 0,
-          totalImpressions: 0,
-        });
-      }
-      const agg = aggregated.get(vendor)!;
-      agg.totalAdSpend += row.ad_spend || 0;
-      agg.totalRevenue += row.revenue || 0;
-      agg.totalClicks += row.clicks || 0;
-      agg.totalImpressions += row.impressions || 0;
-    });
-
-    const result = Array.from(aggregated.values())
-      .map(item => ({
-        ...item,
-        avgCpc: item.totalAdSpend > 0 && item.totalClicks > 0
-          ? item.totalAdSpend / item.totalClicks
-          : 0,
-        avgCtrPercent: item.totalImpressions > 0 && item.totalClicks > 0
-          ? (item.totalClicks / item.totalImpressions) * 100
-          : 0,
-      }))
-      .sort((a, b) => b.totalAdSpend - a.totalAdSpend);
+    const result = (data ?? []).map((row) => ({
+      vendor: row.vendor,
+      totalAdSpend: Number(row.total_ad_spend ?? 0),
+      totalSalesRevenue: Number(row.total_sales_revenue ?? 0),
+      totalSalesProfit: Number(row.total_sales_profit ?? 0),
+      avgCpc: row.avg_cpc != null ? Number(row.avg_cpc) : undefined,
+      avgCtrPercent: row.avg_ctr_percent != null ? Number(row.avg_ctr_percent) : undefined,
+      totalImpressions: Number(row.total_impressions ?? 0),
+      totalClicks: Number(row.total_clicks ?? 0),
+      totalConversions: Number(row.total_conversions ?? 0),
+      totalOrders: Number(row.total_orders ?? 0),
+      totalOrderQuantity: Number(row.total_order_quantity ?? 0),
+      totalAttributedRevenue: Number(row.total_attributed_revenue ?? 0),
+    }));
 
     return {
       data: result,
@@ -1414,18 +1434,26 @@ export async function getSkuAdSpendCategorySummary(): Promise<
     Array<{
       productCategory: string;
       totalAdSpend: number;
-      totalRevenue: number;
+      totalSalesRevenue: number;
+      totalSalesProfit: number;
       totalConversions: number;
       avgAdSpendPerRecord: number;
+      totalImpressions: number;
+      totalClicks: number;
+      totalOrders: number;
+      totalOrderQuantity: number;
+      totalAttributedRevenue: number;
     }>
   > & { source: "supabase" | "sample"; refreshedAt: string }
 > {
   try {
     const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
-      .from("sku_ad_spend")
-      .select("*")
-      .limit(1000);
+      .from("sku_sales_ad_spend_category_summary")
+      .select(
+        "product_category, total_ad_spend, total_sales_revenue, total_sales_profit, total_conversions, avg_ad_spend_per_record, total_impressions, total_clicks, total_orders, total_order_quantity, total_attributed_revenue",
+      )
+      .order("total_ad_spend", { ascending: false });
 
     if (error) {
       console.warn("Supabase error fetching category summary:", error);
@@ -1435,23 +1463,41 @@ export async function getSkuAdSpendCategorySummary(): Promise<
           {
             productCategory: "Electronics",
             totalAdSpend: 10000,
-            totalRevenue: 50000,
+            totalSalesRevenue: 45500,
+            totalSalesProfit: 16250,
             totalConversions: 340,
             avgAdSpendPerRecord: 29.41,
+            totalImpressions: 95000,
+            totalClicks: 3400,
+            totalOrders: 230,
+            totalOrderQuantity: 352,
+            totalAttributedRevenue: 14500,
           },
           {
             productCategory: "Home & Garden",
             totalAdSpend: 8000,
-            totalRevenue: 40000,
+            totalSalesRevenue: 36500,
+            totalSalesProfit: 12800,
             totalConversions: 290,
             avgAdSpendPerRecord: 27.59,
+            totalImpressions: 81000,
+            totalClicks: 2800,
+            totalOrders: 205,
+            totalOrderQuantity: 300,
+            totalAttributedRevenue: 11800,
           },
           {
             productCategory: "Sports & Outdoors",
             totalAdSpend: 7000,
-            totalRevenue: 35000,
+            totalSalesRevenue: 32500,
+            totalSalesProfit: 11200,
             totalConversions: 220,
             avgAdSpendPerRecord: 31.82,
+            totalImpressions: 69000,
+            totalClicks: 2450,
+            totalOrders: 180,
+            totalOrderQuantity: 270,
+            totalAttributedRevenue: 9900,
           },
         ],
         source: "sample",
@@ -1460,41 +1506,19 @@ export async function getSkuAdSpendCategorySummary(): Promise<
       };
     }
 
-    // Aggregate by category (try different possible column names)
-    const aggregated = new Map<string, any>();
-    data?.forEach(row => {
-      // Try to find category column (different naming conventions)
-      const categoryValue =
-        row.product_category ||
-        row.productCategory ||
-        row.category ||
-        row.prod_category ||
-        "Uncategorized";
-
-      if (!aggregated.has(categoryValue)) {
-        aggregated.set(categoryValue, {
-          productCategory: categoryValue,
-          totalAdSpend: 0,
-          totalRevenue: 0,
-          totalConversions: 0,
-          recordCount: 0,
-        });
-      }
-      const agg = aggregated.get(categoryValue)!;
-      agg.totalAdSpend += row.ad_spend || 0;
-      agg.totalRevenue += row.revenue || 0;
-      agg.totalConversions += row.conversions || 0;
-      agg.recordCount += 1;
-    });
-
-    const result = Array.from(aggregated.values())
-      .map(item => ({
-        ...item,
-        avgAdSpendPerRecord: item.recordCount > 0
-          ? item.totalAdSpend / item.recordCount
-          : 0,
-      }))
-      .sort((a, b) => b.totalAdSpend - a.totalAdSpend);
+    const result = (data ?? []).map((row) => ({
+      productCategory: row.product_category,
+      totalAdSpend: Number(row.total_ad_spend ?? 0),
+      totalSalesRevenue: Number(row.total_sales_revenue ?? 0),
+      totalSalesProfit: Number(row.total_sales_profit ?? 0),
+      totalConversions: Number(row.total_conversions ?? 0),
+      avgAdSpendPerRecord: Number(row.avg_ad_spend_per_record ?? 0),
+      totalImpressions: Number(row.total_impressions ?? 0),
+      totalClicks: Number(row.total_clicks ?? 0),
+      totalOrders: Number(row.total_orders ?? 0),
+      totalOrderQuantity: Number(row.total_order_quantity ?? 0),
+      totalAttributedRevenue: Number(row.total_attributed_revenue ?? 0),
+    }));
 
     return {
       data: result,
@@ -1709,11 +1733,18 @@ export async function getSkuAdSpendTopSkus(
       month: string;
       sku: string;
       title: string;
-      platform: string;
+      vendor: string;
+      productCategory?: string;
+      overallProductCategory?: string;
       adSpend: number;
-      revenue: number;
+      salesRevenue: number;
+      salesProfit: number;
       impressions: number;
       clicks: number;
+      conversions: number;
+      attributedRevenue: number;
+      orders: number;
+      orderQuantity: number;
       ctr?: number;
     }>
   > & { source: "supabase" | "sample"; refreshedAt: string }
@@ -1721,9 +1752,11 @@ export async function getSkuAdSpendTopSkus(
   try {
     const supabase = await getSupabaseServerClient();
     let query = supabase
-      .from("sku_ad_spend")
-      .select("month, sku, title, platform, ad_spend, revenue, impressions, clicks")
-      .order("ad_spend", { ascending: false })
+      .from("sku_sales_ad_spend_by_sku_month")
+      .select(
+        "month, sku, title, vendor, product_category, overall_product_category, total_ad_spend, total_sales_revenue, total_sales_profit, total_impressions, total_clicks, total_conversions, total_attributed_revenue, total_orders, total_order_quantity",
+      )
+      .order("total_ad_spend", { ascending: false })
       .limit(limit);
 
     if (month) {
@@ -1740,55 +1773,85 @@ export async function getSkuAdSpendTopSkus(
           month: month || "2024-11",
           sku: "SKU-001",
           title: "Premium Wireless Headphones",
-          platform: "Amazon",
+          vendor: "Acme Audio",
+          productCategory: "Electronics",
           adSpend: 2500,
-          revenue: 15000,
+          salesRevenue: 14800,
+          salesProfit: 5200,
           impressions: 125000,
           clicks: 3125,
+          conversions: 96,
+          attributedRevenue: 6100,
+          orders: 72,
+          orderQuantity: 108,
           ctr: 0.025,
         },
         {
           month: month || "2024-11",
           sku: "SKU-002",
           title: "Smart Home Security System",
-          platform: "Google Ads",
+          vendor: "SecureCo",
+          productCategory: "Home & Garden",
           adSpend: 1800,
-          revenue: 12000,
+          salesRevenue: 11800,
+          salesProfit: 4300,
           impressions: 90000,
           clicks: 1620,
+          conversions: 64,
+          attributedRevenue: 4800,
+          orders: 58,
+          orderQuantity: 87,
           ctr: 0.018,
         },
         {
           month: month || "2024-11",
           sku: "SKU-003",
           title: "Ergonomic Office Chair",
-          platform: "Amazon",
+          vendor: "ComfortWorks",
+          productCategory: "Office",
           adSpend: 1600,
-          revenue: 11000,
+          salesRevenue: 10250,
+          salesProfit: 3550,
           impressions: 80000,
           clicks: 1440,
+          conversions: 51,
+          attributedRevenue: 4200,
+          orders: 46,
+          orderQuantity: 69,
           ctr: 0.018,
         },
         {
           month: month || "2024-11",
           sku: "SKU-004",
           title: "Portable Power Bank",
-          platform: "Walmart",
+          vendor: "VoltX",
+          productCategory: "Electronics",
           adSpend: 1200,
-          revenue: 9000,
+          salesRevenue: 8700,
+          salesProfit: 2900,
           impressions: 60000,
           clicks: 1080,
+          conversions: 42,
+          attributedRevenue: 3600,
+          orders: 39,
+          orderQuantity: 58,
           ctr: 0.018,
         },
         {
           month: month || "2024-11",
           sku: "SKU-005",
           title: "Stainless Steel Water Bottle",
-          platform: "Amazon",
+          vendor: "Hydrate+",
+          productCategory: "Sports & Outdoors",
           adSpend: 900,
-          revenue: 6500,
+          salesRevenue: 6100,
+          salesProfit: 2050,
           impressions: 45000,
           clicks: 810,
+          conversions: 28,
+          attributedRevenue: 2500,
+          orders: 25,
+          orderQuantity: 38,
           ctr: 0.018,
         },
       ];
@@ -1801,17 +1864,23 @@ export async function getSkuAdSpendTopSkus(
       };
     }
 
-    // Calculate CTR for each row
-    const result = (data || []).map(row => ({
+    const result = (data || []).map((row) => ({
       month: row.month,
       sku: row.sku,
-      title: row.title,
-      platform: row.platform,
-      adSpend: row.ad_spend,
-      revenue: row.revenue,
-      impressions: row.impressions,
-      clicks: row.clicks,
-      ctr: row.impressions > 0 ? row.clicks / row.impressions : 0,
+      title: row.title ?? "Unknown Title",
+      vendor: row.vendor ?? "Unknown Vendor",
+      productCategory: row.product_category ?? undefined,
+      overallProductCategory: row.overall_product_category ?? undefined,
+      adSpend: Number(row.total_ad_spend ?? 0),
+      salesRevenue: Number(row.total_sales_revenue ?? 0),
+      salesProfit: Number(row.total_sales_profit ?? 0),
+      impressions: Number(row.total_impressions ?? 0),
+      clicks: Number(row.total_clicks ?? 0),
+      conversions: Number(row.total_conversions ?? 0),
+      attributedRevenue: Number(row.total_attributed_revenue ?? 0),
+      orders: Number(row.total_orders ?? 0),
+      orderQuantity: Number(row.total_order_quantity ?? 0),
+      ctr: Number(row.total_impressions ?? 0) > 0 ? Number(row.total_clicks ?? 0) / Number(row.total_impressions ?? 0) : 0,
     }));
 
     return {
