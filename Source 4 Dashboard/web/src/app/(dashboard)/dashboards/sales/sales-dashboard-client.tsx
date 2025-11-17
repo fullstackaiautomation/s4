@@ -62,6 +62,11 @@ type MetricDelta = {
   direction: "up" | "down" | "flat";
 };
 
+type DateRange = {
+  start: Date;
+  end: Date;
+};
+
 const DUMMY_VENDOR_PATTERN = /^Vendor [A-Z]$/;
 const DUMMY_REPS = new Set(["Alice Johnson", "Bob Smith", "Carol Davis"]);
 
@@ -149,6 +154,24 @@ function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
+function startOfMonth(date: Date) {
+  const result = new Date(date.getFullYear(), date.getMonth(), 1);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
+function endOfMonth(date: Date) {
+  const result = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
+function endOfDay(date: Date) {
+  const result = new Date(date);
+  result.setHours(23, 59, 59, 999);
+  return result;
+}
+
 export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, snapshots }: SalesDashboardClientProps) {
   const { timeRange, vendor, rep } = useDashboardFilters();
 
@@ -186,20 +209,65 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     return maxDate;
   }, [entityFilteredSales, sortedSales]);
 
-  const rangeStart = useMemo(() => {
-    if (timeRange === "all") return null;
+  const { rangeStart, rangeEnd, previousRange } = useMemo<{
+    rangeStart: Date | null;
+    rangeEnd: Date;
+    previousRange: DateRange | null;
+  }>(() => {
+    const defaultRangeEnd = endOfDay(latestRelevantSaleDate);
+
+    if (timeRange === "all") {
+      return {
+        rangeStart: null,
+        rangeEnd: defaultRangeEnd,
+        previousRange: null,
+      };
+    }
+
+    if (timeRange === "last-month") {
+      const currentMonthStart = startOfMonth(latestRelevantSaleDate);
+      const currentMonthEnd = endOfMonth(latestRelevantSaleDate);
+      const previousMonthReference = new Date(currentMonthStart);
+      previousMonthReference.setMonth(previousMonthReference.getMonth() - 1);
+
+      const previousMonthRange: DateRange = {
+        start: startOfMonth(previousMonthReference),
+        end: endOfMonth(previousMonthReference),
+      };
+
+      return {
+        rangeStart: currentMonthStart,
+        rangeEnd: currentMonthEnd,
+        previousRange: previousMonthRange,
+      };
+    }
+
     const days = TIME_RANGE_TO_DAYS[timeRange];
-    if (!days) return null;
-    return subtractDays(latestRelevantSaleDate, days);
+    if (!days) {
+      return {
+        rangeStart: null,
+        rangeEnd: defaultRangeEnd,
+        previousRange: null,
+      };
+    }
+
+    const currentRangeStart = subtractDays(latestRelevantSaleDate, days);
+    const currentRangeEnd = defaultRangeEnd;
+
+    const previousRangeEndCandidate = new Date(currentRangeStart);
+    previousRangeEndCandidate.setMilliseconds(previousRangeEndCandidate.getMilliseconds() - 1);
+
+    const previousRange: DateRange = {
+      start: subtractDays(previousRangeEndCandidate, days),
+      end: endOfDay(previousRangeEndCandidate),
+    };
+
+    return {
+      rangeStart: currentRangeStart,
+      rangeEnd: currentRangeEnd,
+      previousRange,
+    };
   }, [latestRelevantSaleDate, timeRange]);
-
-  const rangeEnd = useMemo(() => {
-    const end = new Date(latestRelevantSaleDate);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }, [latestRelevantSaleDate]);
-
-  const rangeDays = timeRange === "all" ? null : TIME_RANGE_TO_DAYS[timeRange];
 
   const filteredSales = useMemo(() => {
     return entityFilteredSales.filter((record) => {
@@ -210,14 +278,6 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       return true;
     });
   }, [entityFilteredSales, rangeEnd, rangeStart]);
-
-  const previousRange = useMemo(() => {
-    if (!rangeStart || !rangeDays) return null;
-    const end = new Date(rangeStart);
-    end.setMilliseconds(end.getMilliseconds() - 1);
-    const start = subtractDays(end, rangeDays);
-    return { start, end };
-  }, [rangeDays, rangeStart]);
 
   const previousSalesRecords = useMemo(() => {
     if (!previousRange) return [] as SalesRecord[];
