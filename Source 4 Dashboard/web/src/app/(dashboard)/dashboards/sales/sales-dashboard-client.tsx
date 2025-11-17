@@ -120,6 +120,7 @@ type SalesDashboardClientProps = {
 };
 
 const TIME_RANGE_TO_DAYS: Record<string, number> = {
+  "last-month": 30,
   "last-7": 7,
   "last-30": 30,
   quarter: 90,

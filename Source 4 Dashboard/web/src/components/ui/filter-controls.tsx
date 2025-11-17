@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 
-import { Button } from "@/components/ui/button";
 import { SAMPLE_QUOTES, SAMPLE_SKUS } from "@/lib/sample-data";
 import { useDashboardFilters } from "@/components/providers/dashboard-filters";
 
@@ -36,47 +35,42 @@ export function FilterControls({ vendors, reps }: FilterControlsProps) {
   }, [reps]);
 
   return (
-    <div className="flex flex-col gap-3 py-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {TIME_RANGE_OPTIONS.map((option) => (
-            <Button
-              key={option.value}
-              variant={timeRange === option.value ? "primary" : "ghost"}
-              size="sm"
-              onClick={() => setTimeRange(option.value as typeof timeRange)}
-            >
-              {option.label}
-            </Button>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={vendor ?? ""}
-            onChange={(event) => setVendor(event.target.value || null)}
-            className="h-9 rounded-md border border-border bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <option value="">All Vendors</option>
-            {vendorOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-          <select
-            value={rep ?? ""}
-            onChange={(event) => setRep(event.target.value || null)}
-            className="h-9 rounded-md border border-border bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-          >
-            <option value="">All Reps</option>
-            {repOptions.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+    <div className="flex flex-wrap items-center gap-2">
+      <select
+        value={timeRange}
+        onChange={(event) => setTimeRange(event.target.value as typeof timeRange)}
+        className="h-9 rounded-md border border-border bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        {TIME_RANGE_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <select
+        value={vendor ?? ""}
+        onChange={(event) => setVendor(event.target.value || null)}
+        className="h-9 rounded-md border border-border bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <option value="">All Vendors</option>
+        {vendorOptions.map((item) => (
+          <option key={item} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
+      <select
+        value={rep ?? ""}
+        onChange={(event) => setRep(event.target.value || null)}
+        className="h-9 rounded-md border border-border bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+      >
+        <option value="">All Reps</option>
+        {repOptions.map((item) => (
+          <option key={item} value={item}>
+            {item}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }
