@@ -98,22 +98,30 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
 
     const rows = limit ? allRows.slice(-limit) : allRows;
 
-    const records: SalesRecord[] = rows.map((row, index) => {
-      const rawDate = row.date as string | null;
-      const parsedDate = rawDate ? new Date(rawDate) : null;
+    const records: SalesRecord[] = rows
+      .map((row, index) => {
+        const rawDate = row.date as string | null;
+        const parsedDate = rawDate ? new Date(rawDate) : null;
+        const isValidDate = parsedDate && !Number.isNaN(parsedDate.getTime());
 
-      return {
-        id: (row.id as string) ?? `record-${index}`,
-        date: parsedDate && !Number.isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : new Date().toISOString(),
-        vendor: (row.vendor as string) || "Unknown Vendor",
-        rep: (row.rep as string) || "Unknown Rep",
-        invoiceTotal: Number(row.invoice_total ?? row.sales_total ?? 0) || 0,
-        salesTotal: Number(row.sales_total ?? row.invoice_total ?? 0) || 0,
-        orders: Number(row.orders ?? row.order_quantity ?? 0) || 0,
-        orderQuantity: Number(row.order_quantity ?? row.orders ?? 0) || 0,
+        // Log first few dates to debug
+        if (index < 5) {
+          console.log(`[getSalesRecords] Row ${index}: rawDate="${rawDate}", parsedDate="${parsedDate?.toISOString()}", isValid=${isValidDate}`);
+        }
+
+        return {
+          id: (row.id as string) ?? `record-${index}`,
+          date: isValidDate ? parsedDate.toISOString() : '',
+          vendor: (row.vendor as string) || "Unknown Vendor",
+          rep: (row.rep as string) || "Unknown Rep",
+          invoiceTotal: Number(row.invoice_total ?? row.sales_total ?? 0) || 0,
+          salesTotal: Number(row.sales_total ?? row.invoice_total ?? 0) || 0,
+          orders: Number(row.orders ?? row.order_quantity ?? 0) || 0,
+          orderQuantity: Number(row.order_quantity ?? row.orders ?? 0) || 0,
           profitTotal: Number(row.profit_total ?? 0) || 0,
-      };
-    });
+        };
+      })
+      .filter((record) => record.date !== ''); // Filter out records with invalid dates
 
     return {
       data: records,

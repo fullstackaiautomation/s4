@@ -169,8 +169,21 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
   }, [rep, sortedSales, vendor]);
 
   const latestRelevantSaleDate = useMemo(() => {
-    const tail = entityFilteredSales.at(-1) ?? sortedSales.at(-1);
-    return tail ? normalizeDate(tail.date) ?? new Date() : new Date();
+    // Use the most recent sale date from actual data, not today's date
+    const relevantSales = entityFilteredSales.length > 0 ? entityFilteredSales : sortedSales;
+    if (relevantSales.length === 0) {
+      // No sales data at all, fall back to current date
+      return new Date();
+    }
+
+    // Find the maximum date in the data
+    const maxDate = relevantSales.reduce((max, record) => {
+      const recordDate = normalizeDate(record.date);
+      if (!recordDate) return max;
+      return recordDate > max ? recordDate : max;
+    }, normalizeDate(relevantSales[0].date) ?? new Date());
+
+    return maxDate;
   }, [entityFilteredSales, sortedSales]);
 
   const rangeStart = useMemo(() => {
