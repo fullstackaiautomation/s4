@@ -45,7 +45,7 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
       )}
     >
       {/* Header */}
-      <div className="flex h-16 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-md px-4 shrink-0">
+      <div className="flex h-16 items-center border-b border-border/60 bg-card/50 backdrop-blur-md px-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-white shadow-lg">
             <Image src="/favicon.png" alt="S4 Logo" fill className="object-contain" priority />
@@ -58,22 +58,6 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
             </div>
           )}
         </div>
-        {!isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-        )}
-        {isCollapsed && (
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-        )}
       </div>
 
       {/* Navigation */}
@@ -194,16 +178,9 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
       <div className="border-t border-border/60 p-3 shrink-0">
         {!isCollapsed ? (
           <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-muted/30">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <User className="h-4 w-4" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
-              <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
-            </div>
             <button
               onClick={toggleTheme}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {theme === "dark" ? (
@@ -212,15 +189,16 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
                 <Moon className="h-4 w-4" />
               )}
             </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
+              <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
+            </div>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <User className="h-4 w-4" />
-            </div>
             <button
               onClick={toggleTheme}
-              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
               title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {theme === "dark" ? (
