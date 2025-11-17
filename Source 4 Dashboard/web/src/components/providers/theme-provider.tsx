@@ -12,7 +12,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  // Initialize with undefined to avoid flash, will be set by useEffect
+  const [theme, setTheme] = useState<Theme | undefined>(undefined);
 
   const applyTheme = (newTheme: Theme) => {
     const root = document.documentElement;
@@ -38,8 +39,14 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(newTheme);
   };
 
+  // Provide default theme value while loading
+  const contextValue = {
+    theme: theme || "dark",
+    toggleTheme,
+  };
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

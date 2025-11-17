@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronRight, Menu, X, Sun, Moon, User } from "lucide-react";
+import { ChevronRight, Menu, Sun, Moon, User } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import type { Role } from "@/lib/auth/roles";
@@ -39,33 +40,40 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "hidden shrink-0 border-r border-border/60 bg-gradient-to-b from-card/95 to-card/90 backdrop-blur-xl lg:flex lg:flex-col transition-all duration-300",
+        "hidden shrink-0 border-r border-border/60 bg-gradient-to-b from-card/95 to-card/90 backdrop-blur-xl lg:flex lg:flex-col transition-all duration-300 sticky top-0 h-screen",
         isCollapsed ? "w-16" : "w-72"
       )}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-md px-4">
+      <div className="flex h-16 items-center justify-between border-b border-border/60 bg-card/50 backdrop-blur-md px-4 shrink-0">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/90 to-primary text-sm font-bold text-primary-foreground shadow-lg shadow-primary/20">
-            S4
+          <div className="relative h-10 w-10 overflow-hidden rounded-xl bg-white shadow-lg">
+            <Image src="/favicon.png" alt="S4 Logo" fill className="object-contain" priority />
           </div>
           {!isCollapsed && (
             <div className="flex flex-col">
-              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                Source 4 Industries
-              </span>
               <span className="text-sm font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                 Performance Dashboard
               </span>
             </div>
           )}
         </div>
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-        >
-          {isCollapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
-        </button>
+        {!isCollapsed && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+        )}
+        {isCollapsed && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+          >
+            <Menu className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {/* Navigation */}
@@ -182,36 +190,29 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* Footer - User Info & Theme Toggle */}
-      <div className="border-t border-border/60 p-3 space-y-2">
+      {/* User Info & Theme Toggle - condensed into one row */}
+      <div className="border-t border-border/60 p-3 shrink-0">
         {!isCollapsed ? (
-          <>
-            <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-muted/30">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <User className="h-4 w-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
-                <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
-              </div>
+          <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-muted/30">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <User className="h-4 w-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">{userEmail}</p>
+              <p className="text-xs text-muted-foreground">{getRoleLabel(role)}</p>
             </div>
             <button
               onClick={toggleTheme}
-              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
+              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {theme === "dark" ? (
-                <>
-                  <Sun className="h-4 w-4" />
-                  <span>Light Mode</span>
-                </>
+                <Sun className="h-4 w-4" />
               ) : (
-                <>
-                  <Moon className="h-4 w-4" />
-                  <span>Dark Mode</span>
-                </>
+                <Moon className="h-4 w-4" />
               )}
             </button>
-          </>
+          </div>
         ) : (
           <div className="flex flex-col items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -220,7 +221,7 @@ export function Sidebar({ role, userEmail }: SidebarProps) {
             <button
               onClick={toggleTheme}
               className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg transition-colors"
-              title={theme === "dark" ? "Light Mode" : "Dark Mode"}
+              title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
             >
               {theme === "dark" ? (
                 <Sun className="h-4 w-4" />

@@ -12,7 +12,6 @@ import {
   MessageSquare,
   Search,
   MousePointer2,
-  Upload,
   FileUp,
   Star,
   Zap,
@@ -43,8 +42,8 @@ export type NavSection = {
 
 export const NAV_SECTIONS: NavSection[] = [
   {
-    title: "Analytics",
-    icon: LayoutDashboard,
+    title: "Sales",
+    icon: ShoppingCart,
     items: [
       {
         title: "Sales Overview",
@@ -61,34 +60,26 @@ export const NAV_SECTIONS: NavSection[] = [
         minRole: "employee",
       },
       {
-        title: "Ad Spend",
-        href: "/dashboards/product-ad-spend",
+        title: "Vendor Performance",
+        href: "/dashboards/vendors",
+        status: "future",
+        icon: Package,
+        minRole: "employee",
+      },
+      {
+        title: "Home Runs",
+        href: "/dashboards/home-runs",
         status: "active",
-        icon: DollarSign,
-        badge: "New",
+        icon: Trophy,
         minRole: "employee",
       },
       {
         title: "Top Products",
         href: "/dashboards/top-products",
         status: "active",
-        icon: Trophy,
-        badge: "Live",
+        icon: Star,
         minRole: "employee",
       },
-      {
-        title: "Home Run Orders",
-        href: "/dashboards/home-runs",
-        status: "active",
-        icon: Package,
-        minRole: "employee",
-      },
-    ],
-  },
-  {
-    title: "Sales",
-    icon: ShoppingCart,
-    items: [
       {
         title: "Quotes",
         href: "/sales/quotes",
@@ -111,14 +102,35 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: Megaphone,
     items: [
       {
-        title: "Blog",
-        href: "/marketing/blog",
+        title: "Product Ad Spend",
+        href: "/dashboards/product-ad-spend",
         status: "active",
-        icon: BookOpen,
+        icon: DollarSign,
         minRole: "employee",
       },
       {
-        title: "Email Campaigns",
+        title: "Google Ads",
+        href: "/marketing/google-ads",
+        status: "future",
+        icon: MousePointer2,
+        minRole: "employee",
+      },
+      {
+        title: "Bing Ads",
+        href: "/marketing/bing-ads",
+        status: "future",
+        icon: MousePointer2,
+        minRole: "employee",
+      },
+      {
+        title: "SEO",
+        href: "/marketing/seo",
+        status: "active",
+        icon: Search,
+        minRole: "employee",
+      },
+      {
+        title: "Email",
         href: "/marketing/email",
         status: "active",
         icon: Mail,
@@ -132,31 +144,11 @@ export const NAV_SECTIONS: NavSection[] = [
         minRole: "employee",
       },
       {
-        title: "SEO",
-        href: "/marketing/seo",
+        title: "Blog",
+        href: "/marketing/blog",
         status: "active",
-        icon: Search,
+        icon: BookOpen,
         minRole: "employee",
-      },
-      {
-        title: "Paid Ads",
-        href: "/marketing/google-bing-ads",
-        status: "active",
-        icon: MousePointer2,
-        minRole: "employee",
-      },
-    ],
-  },
-  {
-    title: "Data Management",
-    icon: Upload,
-    items: [
-      {
-        title: "Monthly Reports",
-        href: "/uploads/monthly-dashboard",
-        status: "active",
-        icon: FileUp,
-        minRole: "admin",
       },
       {
         title: "Reviews",
@@ -179,10 +171,24 @@ export const NAV_SECTIONS: NavSection[] = [
         minRole: "admin",
       },
       {
-        title: "Projects",
+        title: "Automations",
         href: "/automations/projects",
         status: "active",
         icon: FolderKanban,
+        minRole: "admin",
+      },
+      {
+        title: "Monthly Reports",
+        href: "/uploads/monthly-dashboard",
+        status: "active",
+        icon: FileUp,
+        minRole: "admin",
+      },
+      {
+        title: "SKU Master",
+        href: "/admin/sku-master",
+        status: "active",
+        icon: Package,
         minRole: "admin",
       },
     ],
@@ -191,13 +197,6 @@ export const NAV_SECTIONS: NavSection[] = [
     title: "Settings",
     icon: Settings,
     items: [
-      {
-        title: "SKU Master",
-        href: "/admin/sku-master",
-        status: "active",
-        icon: Package,
-        minRole: "admin",
-      },
       {
         title: "Access Control",
         href: "/admin/logins",
