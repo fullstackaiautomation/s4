@@ -16,7 +16,7 @@ type DashboardFilters = {
 const DashboardFiltersContext = createContext<DashboardFilters | undefined>(undefined);
 
 export function DashboardFiltersProvider({ children }: { children: React.ReactNode }) {
-  const [timeRange, setTimeRange] = useState<TimeRange>("last-30");
+  const [timeRange, setTimeRange] = useState<TimeRange>("all");
   const [vendor, setVendor] = useState<string | null>(null);
   const [rep, setRep] = useState<string | null>(null);
 

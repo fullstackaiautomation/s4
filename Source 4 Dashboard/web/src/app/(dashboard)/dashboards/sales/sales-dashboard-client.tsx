@@ -10,7 +10,6 @@ import { MetricTile } from "@/components/ui/metric";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
 import { useDashboardFilters } from "@/components/providers/dashboard-filters";
 import type { SalesRecord } from "@/lib/data-service";
-import type { Quote } from "@/lib/types";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils";
 
 type AbandonedCart = {
@@ -38,11 +37,86 @@ type HomeRunRecord = {
   closedAtIso?: string;
 };
 
+type MonthlySnapshot = {
+  date: string;
+  value: number;
+  secondary: number;
+  revenue: number;
+  orders: number;
+  avgOrderValue: number;
+  topVendors: Array<{ name: string; revenue: number }>;
+  topReps: Array<{ name: string; revenue: number }>;
+};
+
+type MonthlyBucket = {
+  key: string;
+  label: string;
+  revenue: number;
+  orders: number;
+  avgOrderValue: number;
+  profit: number;
+};
+
+type MetricDelta = {
+  value: string;
+  direction: "up" | "down" | "flat";
+};
+
+const DUMMY_VENDOR_PATTERN = /^Vendor [A-Z]$/;
+const DUMMY_REPS = new Set(["Alice Johnson", "Bob Smith", "Carol Davis"]);
+
+function buildPercentDelta(current: number, previous: number, canCompare: boolean, suffix = "vs prior"): MetricDelta | undefined {
+  if (!canCompare) {
+    if (current <= 0) return undefined;
+    return { value: "All-time view", direction: "flat" };
+  }
+
+  if (previous <= 0) {
+    if (current <= 0) return { value: "No prior data", direction: "flat" };
+    return { value: "New vs prior", direction: "up" };
+  }
+
+  const change = current - previous;
+  if (Math.abs(change) < Number.EPSILON) {
+    return { value: "No change vs prior", direction: "flat" };
+  }
+
+  const percent = change / previous;
+  const prefix = change > 0 ? "+" : "−";
+  return {
+    value: `${prefix}${formatPercent(Math.abs(percent))} ${suffix}`,
+    direction: change > 0 ? "up" : "down",
+  };
+}
+
+function buildAbsoluteDelta(current: number, previous: number, canCompare: boolean, label = "change vs prior"): MetricDelta | undefined {
+  if (!canCompare) {
+    if (current <= 0) return undefined;
+    return { value: "All-time view", direction: "flat" };
+  }
+
+  if (previous <= 0) {
+    if (current <= 0) return { value: "No prior data", direction: "flat" };
+    return { value: "New vs prior", direction: "up" };
+  }
+
+  const change = current - previous;
+  if (change === 0) {
+    return { value: "No change vs prior", direction: "flat" };
+  }
+
+  const prefix = change > 0 ? "+" : "−";
+  return {
+    value: `${prefix}${formatNumber(Math.abs(change))} ${label}`,
+    direction: change > 0 ? "up" : "down",
+  };
+}
+
 type SalesDashboardClientProps = {
   sales: SalesRecord[];
-  quotes: Quote[];
   abandonedCarts: AbandonedCart[];
   homeRuns: HomeRunRecord[];
+  snapshots: MonthlySnapshot[];
 };
 
 const TIME_RANGE_TO_DAYS: Record<string, number> = {
@@ -51,6 +125,10 @@ const TIME_RANGE_TO_DAYS: Record<string, number> = {
   quarter: 90,
   year: 365,
 };
+
+function formatMonthLabel(date: Date) {
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
 
 function normalizeDate(value: string | undefined) {
   if (!value) return null;
@@ -70,7 +148,7 @@ function monthKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 }
 
-export default function SalesDashboardClient({ sales, quotes, abandonedCarts, homeRuns }: SalesDashboardClientProps) {
+export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, snapshots }: SalesDashboardClientProps) {
   const { timeRange, vendor, rep } = useDashboardFilters();
 
   const sortedSales = useMemo(() => {
@@ -81,83 +159,195 @@ export default function SalesDashboardClient({ sales, quotes, abandonedCarts, ho
     });
   }, [sales]);
 
-  const latestSaleDate = useMemo(() => {
-    const tail = sortedSales.at(-1);
+  const entityFilteredSales = useMemo(() => {
+    return sortedSales.filter((record) => {
+      if (vendor && record.vendor !== vendor) return false;
+      if (rep && record.rep !== rep) return false;
+      return true;
+    });
+  }, [rep, sortedSales, vendor]);
+
+  const latestRelevantSaleDate = useMemo(() => {
+    const tail = entityFilteredSales.at(-1) ?? sortedSales.at(-1);
     return tail ? normalizeDate(tail.date) ?? new Date() : new Date();
-  }, [sortedSales]);
+  }, [entityFilteredSales, sortedSales]);
 
   const rangeStart = useMemo(() => {
     if (timeRange === "all") return null;
     const days = TIME_RANGE_TO_DAYS[timeRange];
     if (!days) return null;
-    return subtractDays(latestSaleDate, days);
-  }, [latestSaleDate, timeRange]);
+    return subtractDays(latestRelevantSaleDate, days);
+  }, [latestRelevantSaleDate, timeRange]);
 
   const rangeEnd = useMemo(() => {
-    const end = new Date(latestSaleDate);
+    const end = new Date(latestRelevantSaleDate);
     end.setHours(23, 59, 59, 999);
     return end;
-  }, [latestSaleDate]);
+  }, [latestRelevantSaleDate]);
+
+  const rangeDays = timeRange === "all" ? null : TIME_RANGE_TO_DAYS[timeRange];
 
   const filteredSales = useMemo(() => {
-    return sortedSales.filter((record) => {
+    return entityFilteredSales.filter((record) => {
       const recordDate = normalizeDate(record.date);
       if (!recordDate) return false;
       if (rangeStart && recordDate < rangeStart) return false;
       if (recordDate > rangeEnd) return false;
-      if (vendor && record.vendor !== vendor) return false;
-      if (rep && record.rep !== rep) return false;
       return true;
     });
-  }, [rangeEnd, rangeStart, rep, sortedSales, vendor]);
+  }, [entityFilteredSales, rangeEnd, rangeStart]);
 
-  const vendorOptions = useMemo(() => {
-    const set = new Set<string>();
-    sales.forEach((record) => set.add(record.vendor));
-    quotes.forEach((quote) => set.add(quote.vendor));
-    homeRuns.forEach((run) => set.add(run.vendor));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [homeRuns, quotes, sales]);
+  const previousRange = useMemo(() => {
+    if (!rangeStart || !rangeDays) return null;
+    const end = new Date(rangeStart);
+    end.setMilliseconds(end.getMilliseconds() - 1);
+    const start = subtractDays(end, rangeDays);
+    return { start, end };
+  }, [rangeDays, rangeStart]);
 
-  const repOptions = useMemo(() => {
-    const set = new Set<string>();
-    sales.forEach((record) => set.add(record.rep));
-    quotes.forEach((quote) => set.add(quote.rep));
-    homeRuns.forEach((run) => set.add(run.rep));
-    abandonedCarts.forEach((cart) => set.add(cart.rep));
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [abandonedCarts, homeRuns, quotes, sales]);
+  const previousSalesRecords = useMemo(() => {
+    if (!previousRange) return [] as SalesRecord[];
+    return entityFilteredSales.filter((record) => {
+      const recordDate = normalizeDate(record.date);
+      if (!recordDate) return false;
+      if (recordDate < previousRange.start) return false;
+      if (recordDate > previousRange.end) return false;
+      return true;
+    });
+  }, [entityFilteredSales, previousRange]);
 
-  const latestPeriodKey = useMemo(() => {
-    const latest = filteredSales.at(-1);
-    if (!latest) return null;
-    const date = normalizeDate(latest.date);
-    return date ? monthKey(date) : null;
+  const monthlyBuckets = useMemo<MonthlyBucket[]>(() => {
+    if (!filteredSales.length) return [];
+
+    const buckets = new Map<string, { revenue: number; profit: number; orders: number; label: string }>();
+    filteredSales.forEach((record) => {
+      const date = normalizeDate(record.date);
+      if (!date) return;
+      const key = monthKey(date);
+      if (!buckets.has(key)) {
+        buckets.set(key, {
+          revenue: 0,
+          profit: 0,
+          orders: 0,
+          label: formatMonthLabel(date),
+        });
+      }
+
+      const bucket = buckets.get(key)!;
+      bucket.revenue += record.invoiceTotal;
+      bucket.profit += record.profitTotal ?? 0;
+      const orders = record.orders > 0 ? record.orders : record.orderQuantity > 0 ? record.orderQuantity : 1;
+      bucket.orders += orders;
+    });
+
+    return Array.from(buckets.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([key, bucket]) => ({
+        key,
+        label: bucket.label,
+        revenue: bucket.revenue,
+        profit: bucket.profit,
+        orders: bucket.orders,
+        avgOrderValue: bucket.orders > 0 ? bucket.revenue / bucket.orders : 0,
+      }));
   }, [filteredSales]);
 
+  const latestBucket = monthlyBuckets.length ? monthlyBuckets[monthlyBuckets.length - 1] : undefined;
+
+  const latestPeriodKey = latestBucket?.key ?? null;
+
   const trailingRecords = useMemo(() => {
-    if (!latestPeriodKey) return [] as SalesRecord[];
+    if (!latestPeriodKey) return filteredSales;
     return filteredSales.filter((record) => {
       const date = normalizeDate(record.date);
       return date ? monthKey(date) === latestPeriodKey : false;
     });
   }, [filteredSales, latestPeriodKey]);
 
-  const trailingRevenue = useMemo(
-    () => trailingRecords.reduce((sum, record) => sum + record.invoiceTotal, 0),
-    [trailingRecords],
+  const vendorOptions = useMemo(() => {
+    const set = new Set<string>();
+    sales.forEach((record) => record.vendor && set.add(record.vendor));
+    homeRuns.forEach((run) => run.vendor && set.add(run.vendor));
+    abandonedCarts.forEach((cart) => cart.vendor && set.add(cart.vendor));
+    return Array.from(set)
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0 && !DUMMY_VENDOR_PATTERN.test(name))
+      .sort((a, b) => a.localeCompare(b));
+  }, [abandonedCarts, homeRuns, sales]);
+
+  const repOptions = useMemo(() => {
+    const set = new Set<string>();
+    sales.forEach((record) => record.rep && set.add(record.rep));
+    homeRuns.forEach((run) => run.rep && set.add(run.rep));
+    abandonedCarts.forEach((cart) => cart.rep && set.add(cart.rep));
+    return Array.from(set)
+      .map((name) => name.trim())
+      .filter((name) => name.length > 0 && !DUMMY_REPS.has(name))
+      .sort((a, b) => a.localeCompare(b));
+  }, [abandonedCarts, homeRuns, sales]);
+
+  const currentRevenue = useMemo(
+    () => filteredSales.reduce((sum, record) => sum + record.invoiceTotal, 0),
+    [filteredSales],
   );
 
-  const trailingOrders = useMemo(
+  const previousRevenue = useMemo(
+    () => previousSalesRecords.reduce((sum, record) => sum + record.invoiceTotal, 0),
+    [previousSalesRecords],
+  );
+
+  const currentOrders = useMemo(
     () =>
-      trailingRecords.reduce((sum, record) => {
+      filteredSales.reduce((sum, record) => {
         const value = record.orders > 0 ? record.orders : record.orderQuantity > 0 ? record.orderQuantity : 1;
         return sum + value;
       }, 0),
-    [trailingRecords],
+    [filteredSales],
   );
 
-  const trailingAvgOrder = trailingOrders > 0 ? trailingRevenue / trailingOrders : 0;
+  const previousOrders = useMemo(
+    () =>
+      previousSalesRecords.reduce((sum, record) => {
+        const value = record.orders > 0 ? record.orders : record.orderQuantity > 0 ? record.orderQuantity : 1;
+        return sum + value;
+      }, 0),
+    [previousSalesRecords],
+  );
+
+  const hasComparisonPeriod = Boolean(previousRange);
+
+  const revenueDelta = useMemo(
+    () => buildPercentDelta(currentRevenue, previousRevenue, hasComparisonPeriod),
+    [currentRevenue, hasComparisonPeriod, previousRevenue],
+  );
+
+  const ordersDelta = useMemo(
+    () => buildAbsoluteDelta(currentOrders, previousOrders, hasComparisonPeriod, "orders vs prior"),
+    [currentOrders, hasComparisonPeriod, previousOrders],
+  );
+
+  const currentProfit = useMemo(
+    () => filteredSales.reduce((sum, record) => sum + (record.profitTotal ?? 0), 0),
+    [filteredSales],
+  );
+
+  const previousProfit = useMemo(
+    () => previousSalesRecords.reduce((sum, record) => sum + (record.profitTotal ?? 0), 0),
+    [previousSalesRecords],
+  );
+
+  const profitDelta = useMemo(
+    () => buildPercentDelta(currentProfit, previousProfit, hasComparisonPeriod),
+    [currentProfit, hasComparisonPeriod, previousProfit],
+  );
+
+  const currentMargin = currentRevenue > 0 ? currentProfit / currentRevenue : 0;
+  const previousMargin = previousRevenue > 0 ? previousProfit / previousRevenue : 0;
+
+  const marginDelta = useMemo(
+    () => buildPercentDelta(currentMargin, previousMargin, hasComparisonPeriod),
+    [currentMargin, hasComparisonPeriod, previousMargin],
+  );
 
   const trailingTopVendors = useMemo(() => {
     const source = trailingRecords.length ? trailingRecords : filteredSales;
@@ -172,52 +362,25 @@ export default function SalesDashboardClient({ sales, quotes, abandonedCarts, ho
   }, [filteredSales, trailingRecords]);
 
   const trendSeries = useMemo(() => {
-    const buckets = new Map<string, { label: string; revenue: number }>();
-    filteredSales.forEach((record) => {
-      const date = normalizeDate(record.date);
-      if (!date) return;
-      const key = monthKey(date);
-      if (!buckets.has(key)) {
-        buckets.set(key, {
-          label: date.toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-          revenue: 0,
-        });
-      }
-      buckets.get(key)!.revenue += record.invoiceTotal;
-    });
-
-    return Array.from(buckets.entries())
-      .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([, bucket]) => ({
+    if (monthlyBuckets.length) {
+      return monthlyBuckets.map((bucket) => ({
         date: bucket.label,
-        value: bucket.revenue,
-        secondary: 0, // TODO: Connect to real ad spend data
+        revenue: bucket.revenue,
+        profit: bucket.profit,
       }));
-  }, [filteredSales]);
+    }
 
-  const filteredQuotes = useMemo(() => {
-    return quotes.filter((quote) => {
-      const date = normalizeDate(quote.date || quote.createdAt);
-      if (!date) return true;
-      if (rangeStart && date < rangeStart) return false;
-      if (date > rangeEnd) return false;
-      if (vendor && quote.vendor !== vendor) return false;
-      if (rep && quote.rep !== rep) return false;
-      return true;
-    });
-  }, [quotes, rangeEnd, rangeStart, rep, vendor]);
+    if (!sales.length) {
+      return snapshots.map((snapshot) => ({
+        date: snapshot.date,
+        revenue: snapshot.revenue,
+        profit: snapshot.secondary ?? 0,
+      }));
+    }
 
-  const quotePipelineValue = useMemo(
-    () => filteredQuotes.reduce((sum, quote) => (quote.status === "open" ? sum + quote.value : sum), 0),
-    [filteredQuotes],
-  );
+    return [] as Array<{ date: string; revenue: number; profit: number }>;
+  }, [monthlyBuckets, sales.length, snapshots]);
 
-  const quoteWinRate = useMemo(() => {
-    const closed = filteredQuotes.filter((quote) => quote.status === "won" || quote.status === "lost");
-    if (!closed.length) return 0;
-    const won = closed.filter((quote) => quote.status === "won").length;
-    return won / closed.length;
-  }, [filteredQuotes]);
 
   const filteredHomeRuns = useMemo(() => {
     return homeRuns
@@ -246,50 +409,48 @@ export default function SalesDashboardClient({ sales, quotes, abandonedCarts, ho
     <div className="space-y-10">
       <SectionHeader
         title="Sales Overview"
-        description="Monitor overall revenue trends, quotes pipeline health, and high-impact opportunities."
         badge="Pipeline"
+        actions={<FilterControls vendors={vendorOptions} reps={repOptions} />}
       />
-
-      <FilterControls vendors={vendorOptions} reps={repOptions} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Monthly Revenue"
-          value={formatCurrency(trailingRevenue)}
-          delta={{ value: "+6.2% vs prior", direction: "up" }}
+          label={timeRange === "all" ? "Total Revenue" : "Revenue"}
+          value={formatCurrency(currentRevenue)}
+          delta={revenueDelta}
           accent="primary"
         />
         <MetricTile
+          label={timeRange === "all" ? "Total Profit" : "Profit"}
+          value={formatCurrency(currentProfit)}
+          delta={profitDelta}
+          accent="warning"
+        />
+        <MetricTile
           label="Orders"
-          value={formatNumber(trailingOrders)}
-          delta={{ value: "+18 orders", direction: "up" }}
+          value={formatNumber(currentOrders)}
+          delta={ordersDelta}
           accent="secondary"
         />
         <MetricTile
-          label="Avg Order Value"
-          value={formatCurrency(trailingAvgOrder)}
-          delta={{ value: trailingAvgOrder ? "Stable" : "No data", direction: trailingAvgOrder ? "flat" : "flat" }}
+          label="Margin"
+          value={formatPercent(currentMargin)}
+          delta={marginDelta}
           accent="success"
-        />
-        <MetricTile
-          label="Quotes Pipeline"
-          value={formatCurrency(quotePipelineValue)}
-          delta={{
-            value: `${formatPercent(quoteWinRate)} win rate`,
-            direction: quoteWinRate >= 0.4 ? "up" : "down",
-          }}
-          accent="warning"
         />
       </div>
 
       <Card>
         <CardHeader className="items-start">
           <div>
-            <CardTitle>Revenue vs Spend</CardTitle>
-            <CardDescription>Track revenue and marketing spend to understand contribution margin trends.</CardDescription>
+            <CardTitle>Monthly Sales Trend</CardTitle>
           </div>
         </CardHeader>
-        <TrendArea data={trendSeries} primaryLabel="Revenue" secondaryLabel="Ad Spend" />
+        <TrendArea
+          data={trendSeries}
+          revenueLabel={timeRange === "all" ? "Total Revenue" : "Revenue"}
+          profitLabel="Total Profit"
+        />
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
