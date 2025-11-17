@@ -69,6 +69,8 @@ type DateRange = {
 
 const DUMMY_VENDOR_PATTERN = /^Vendor [A-Z]$/;
 const DUMMY_REPS = new Set(["Alice Johnson", "Bob Smith", "Carol Davis"]);
+const MIN_VALID_SALES_DATE = new Date("2022-11-01T00:00:00Z");
+const MIN_VALID_SALES_MONTH_KEY = "2022-11";
 
 function buildPercentDelta(current: number, previous: number, canCompare: boolean, suffix = "vs prior"): MetricDelta | undefined {
   if (!canCompare) {
@@ -176,7 +178,12 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
   const { timeRange, vendor, rep } = useDashboardFilters();
 
   const sortedSales = useMemo(() => {
-    return [...sales].sort((a, b) => {
+    return [...sales]
+      .filter((record) => {
+        const parsedDate = normalizeDate(record.date);
+        return parsedDate ? parsedDate >= MIN_VALID_SALES_DATE : false;
+      })
+      .sort((a, b) => {
       const aDate = normalizeDate(a.date)?.getTime() ?? 0;
       const bDate = normalizeDate(b.date)?.getTime() ?? 0;
       return aDate - bDate;
@@ -298,6 +305,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       const date = normalizeDate(record.date);
       if (!date) return;
       const key = monthKey(date);
+      if (key < MIN_VALID_SALES_MONTH_KEY) return;
       if (!buckets.has(key)) {
         buckets.set(key, {
           revenue: 0,

@@ -115,6 +115,7 @@ vercel link --project source-4-industries --yes
 - This is a Windows development environment
 - Multiple sub-projects with different purposes
 - Documentation should be kept up-to-date in progress.md, decisions.md, and bugs.md
+- Sales dashboards must ignore any `all_time_sales` rows before **2022-11-01**; use the `SALES_DATA_START_*` constants in `src/lib/data-service.ts` when adding new queries or aggregations
 
 ## Git Sync Workflow
 

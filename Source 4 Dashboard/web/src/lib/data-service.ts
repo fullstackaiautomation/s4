@@ -51,6 +51,10 @@ const SAMPLE_SALES_RECORDS: SalesRecord[] = [
   },
 ];
 
+const SALES_DATA_START_DATE = "2022-11-01";
+const SALES_DATA_START_MONTH = "2022-11";
+const SALES_DATA_START = new Date(`${SALES_DATA_START_DATE}T00:00:00Z`);
+
 export async function getSalesRecords(limit?: number): Promise<ApiResponse<SalesRecord[]>> {
   try {
     const supabase = await getSupabaseServerClient();
@@ -65,6 +69,7 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
       const { data, error } = await supabase
         .from("all_time_sales")
         .select("id, date, vendor, rep, invoice_total, sales_total, orders, order_quantity, profit_total")
+        .gte("date", SALES_DATA_START_DATE)
         .order("date", { ascending: true })
         .range(from, to);
 
@@ -121,7 +126,11 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
           profitTotal: Number(row.profit_total ?? 0) || 0,
         };
       })
-      .filter((record) => record.date !== ''); // Filter out records with invalid dates
+      .filter((record) => {
+        if (record.date === '') return false;
+        const parsedDate = new Date(record.date);
+        return !Number.isNaN(parsedDate.getTime()) && parsedDate >= SALES_DATA_START;
+      });
 
     return {
       data: records,
@@ -365,6 +374,7 @@ export async function getHomeRuns(): Promise<
     const { data, error } = await supabase
       .from("all_time_sales")
       .select("invoice_number, vendor, rep, invoice_total, sales_total, date, description")
+      .gte("date", SALES_DATA_START_DATE)
       .not("invoice_number", "is", null)
       .order("invoice_total", { ascending: false })
       .limit(2000);
@@ -405,8 +415,15 @@ export async function getHomeRuns(): Promise<
           const raw = row.date as string | null;
           if (!raw) return new Date().toISOString();
           const parsed = new Date(raw);
-          return Number.isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
+          if (Number.isNaN(parsed.getTime()) || parsed < SALES_DATA_START) {
+            return null;
+          }
+          return parsed.toISOString();
         })();
+
+        if (!isoDate) {
+          return;
+        }
 
         aggregate.set(invoice, {
           invoice,
@@ -629,6 +646,7 @@ export async function getSalesSnapshots(): Promise<
       const { data, error } = await supabase
         .from("all_time_sales")
         .select("date, month, sales_total, invoice_total, orders, order_quantity, vendor, rep")
+        .gte("date", SALES_DATA_START_DATE)
         .order("date", { ascending: true })
         .range(from, from + pageSize - 1);
 
@@ -669,6 +687,19 @@ export async function getSalesSnapshots(): Promise<
         : row.date
           ? new Date(row.date).toISOString().slice(0, 7)
           : "unknown";
+
+      if (!monthKey || monthKey === "unknown" || monthKey < SALES_DATA_START_MONTH) {
+        return;
+      }
+
+      const rowDate = row.date ? new Date(row.date) : null;
+      if (rowDate && Number.isNaN(rowDate.getTime())) {
+        return;
+      }
+
+      if (rowDate && rowDate < SALES_DATA_START) {
+        return;
+      }
 
       if (!buckets.has(monthKey)) {
         buckets.set(monthKey, {
@@ -1569,7 +1600,8 @@ export async function getTopProducts(
     const supabase = await getSupabaseServerClient();
     let query = supabase
       .from("all_time_sales")
-      .select("sku, description, vendor, product_category, overall_product_category, sales_total, profit_total, orders, roi, sales_each");
+      .select("sku, description, vendor, product_category, overall_product_category, sales_total, profit_total, orders, roi, sales_each, date")
+      .gte("date", SALES_DATA_START_DATE);
 
     // Apply date range filter if provided
     if (dateRange) {
@@ -1661,6 +1693,13 @@ export async function getTopProducts(
     const aggregated = new Map<string, any>();
 
     data.forEach(row => {
+      if (row.date) {
+        const parsedDate = new Date(row.date);
+        if (!Number.isNaN(parsedDate.getTime()) && parsedDate < SALES_DATA_START) {
+          return;
+        }
+      }
+
       const key = row.sku;
       if (!aggregated.has(key)) {
         aggregated.set(key, {
