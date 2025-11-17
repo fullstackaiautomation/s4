@@ -1,6 +1,7 @@
 import { TimeRange } from "@/components/providers/dashboard-filters";
 
 const TIME_RANGE_TO_DAYS: Record<Exclude<TimeRange, "all">, number> = {
+  "last-month": 30,
   "last-7": 7,
   "last-30": 30,
   quarter: 90,

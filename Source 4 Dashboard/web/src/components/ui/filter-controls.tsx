@@ -7,6 +7,7 @@ import { SAMPLE_QUOTES, SAMPLE_SKUS } from "@/lib/sample-data";
 import { useDashboardFilters } from "@/components/providers/dashboard-filters";
 
 const TIME_RANGE_OPTIONS = [
+  { label: "Last Month", value: "last-month" },
   { label: "Last 7", value: "last-7" },
   { label: "Last 30", value: "last-30" },
   { label: "Quarter", value: "quarter" },

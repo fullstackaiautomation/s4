@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 
-export type TimeRange = "last-7" | "last-30" | "quarter" | "year" | "all";
+export type TimeRange = "last-month" | "last-7" | "last-30" | "quarter" | "year" | "all";
 
 type DashboardFilters = {
   timeRange: TimeRange;
@@ -16,7 +16,7 @@ type DashboardFilters = {
 const DashboardFiltersContext = createContext<DashboardFilters | undefined>(undefined);
 
 export function DashboardFiltersProvider({ children }: { children: React.ReactNode }) {
-  const [timeRange, setTimeRange] = useState<TimeRange>("all");
+  const [timeRange, setTimeRange] = useState<TimeRange>("last-month");
   const [vendor, setVendor] = useState<string | null>(null);
   const [rep, setRep] = useState<string | null>(null);
 
