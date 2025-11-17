@@ -318,8 +318,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       const bucket = buckets.get(key)!;
       bucket.revenue += record.invoiceTotal;
       bucket.profit += record.profitTotal ?? 0;
-      const orders = record.orders > 0 ? record.orders : record.orderQuantity > 0 ? record.orderQuantity : 1;
-      bucket.orders += orders;
+      bucket.orders += record.orders;
     });
 
     return Array.from(buckets.entries())
@@ -333,18 +332,6 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         avgOrderValue: bucket.orders > 0 ? bucket.revenue / bucket.orders : 0,
       }));
   }, [filteredSales]);
-
-  const latestBucket = monthlyBuckets.length ? monthlyBuckets[monthlyBuckets.length - 1] : undefined;
-
-  const latestPeriodKey = latestBucket?.key ?? null;
-
-  const trailingRecords = useMemo(() => {
-    if (!latestPeriodKey) return filteredSales;
-    return filteredSales.filter((record) => {
-      const date = normalizeDate(record.date);
-      return date ? monthKey(date) === latestPeriodKey : false;
-    });
-  }, [filteredSales, latestPeriodKey]);
 
   const vendorOptions = useMemo(() => {
     const set = new Set<string>();
@@ -379,20 +366,12 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
   );
 
   const currentOrders = useMemo(
-    () =>
-      filteredSales.reduce((sum, record) => {
-        const value = record.orders > 0 ? record.orders : record.orderQuantity > 0 ? record.orderQuantity : 1;
-        return sum + value;
-      }, 0),
+    () => filteredSales.reduce((sum, record) => sum + record.orders, 0),
     [filteredSales],
   );
 
   const previousOrders = useMemo(
-    () =>
-      previousSalesRecords.reduce((sum, record) => {
-        const value = record.orders > 0 ? record.orders : record.orderQuantity > 0 ? record.orderQuantity : 1;
-        return sum + value;
-      }, 0),
+    () => previousSalesRecords.reduce((sum, record) => sum + record.orders, 0),
     [previousSalesRecords],
   );
 
@@ -431,17 +410,49 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     [currentMargin, hasComparisonPeriod, previousMargin],
   );
 
-  const trailingTopVendors = useMemo(() => {
-    const source = trailingRecords.length ? trailingRecords : filteredSales;
-    const totals = new Map<string, number>();
+  const topVendors = useMemo(() => {
+    const source = filteredSales;
+    const totals = new Map<string, { revenue: number; profit: number; orders: number }>();
     source.forEach((record) => {
-      totals.set(record.vendor, (totals.get(record.vendor) ?? 0) + record.invoiceTotal);
+      const existing = totals.get(record.vendor) ?? { revenue: 0, profit: 0, orders: 0 };
+      existing.revenue += record.invoiceTotal;
+      existing.profit += record.profitTotal ?? 0;
+      existing.orders += record.orders;
+      totals.set(record.vendor, existing);
     });
     return Array.from(totals.entries())
-      .map(([name, revenue]) => ({ name, revenue }))
+      .map(([name, stats]) => ({
+        name,
+        revenue: stats.revenue,
+        profit: stats.profit,
+        orders: stats.orders,
+        margin: stats.revenue > 0 ? stats.profit / stats.revenue : 0,
+      }))
       .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5);
-  }, [filteredSales, trailingRecords]);
+      .slice(0, 10);
+  }, [filteredSales]);
+
+  const topReps = useMemo(() => {
+    const source = filteredSales;
+    const totals = new Map<string, { revenue: number; profit: number; orders: number }>();
+    source.forEach((record) => {
+      const existing = totals.get(record.rep) ?? { revenue: 0, profit: 0, orders: 0 };
+      existing.revenue += record.invoiceTotal;
+      existing.profit += record.profitTotal ?? 0;
+      existing.orders += record.orders;
+      totals.set(record.rep, existing);
+    });
+    return Array.from(totals.entries())
+      .map(([name, stats]) => ({
+        name,
+        revenue: stats.revenue,
+        profit: stats.profit,
+        orders: stats.orders,
+        margin: stats.revenue > 0 ? stats.profit / stats.revenue : 0,
+      }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+  }, [filteredSales]);
 
   const trendSeries = useMemo(() => {
     if (monthlyBuckets.length) {
@@ -481,11 +492,6 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
   }, [homeRuns, rangeEnd, rangeStart, rep, vendor]);
 
   const homeRunTopFive = filteredHomeRuns.slice(0, 5);
-
-  const filteredCarts = useMemo(() => {
-    const carts = rep ? abandonedCarts.filter((cart) => cart.rep === rep) : abandonedCarts;
-    return carts.slice(0, 6);
-  }, [abandonedCarts, rep]);
 
   return (
     <div className="space-y-10">
@@ -547,19 +553,25 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
             <TableHeader>
               <TableRow>
                 <TableHeadCell>Vendor</TableHeadCell>
+                <TableHeadCell className="text-right">Orders</TableHeadCell>
                 <TableHeadCell className="text-right">Revenue</TableHeadCell>
+                <TableHeadCell className="text-right">Profit</TableHeadCell>
+                <TableHeadCell className="text-right">Margin</TableHeadCell>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {trailingTopVendors.map((item) => (
+              {topVendors.map((item) => (
                 <TableRow key={item.name}>
                   <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-right">{formatNumber(item.orders)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.revenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(item.profit)}</TableCell>
+                  <TableCell className="text-right">{formatPercent(item.margin)}</TableCell>
                 </TableRow>
               ))}
-              {!trailingTopVendors.length && (
+              {!topVendors.length && (
                 <TableRow>
-                  <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                     No data available for the selected filters.
                   </TableCell>
                 </TableRow>
@@ -571,32 +583,34 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         <Card>
           <CardHeader>
             <div>
-              <CardTitle>Open Abandoned Carts</CardTitle>
-              <CardDescription>Focus recovery efforts on high-value carts with recent activity.</CardDescription>
+              <CardTitle>Top Reps</CardTitle>
+              <CardDescription>Leading sales reps in the latest period.</CardDescription>
             </div>
           </CardHeader>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHeadCell>Cart</TableHeadCell>
                 <TableHeadCell>Rep</TableHeadCell>
-                <TableHeadCell>Status</TableHeadCell>
-                <TableHeadCell className="text-right">Value</TableHeadCell>
+                <TableHeadCell className="text-right">Orders</TableHeadCell>
+                <TableHeadCell className="text-right">Revenue</TableHeadCell>
+                <TableHeadCell className="text-right">Profit</TableHeadCell>
+                <TableHeadCell className="text-right">Margin</TableHeadCell>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCarts.map((cart) => (
-                <TableRow key={cart.id}>
-                  <TableCell className="font-medium">{cart.id}</TableCell>
-                  <TableCell>{cart.rep}</TableCell>
-                  <TableCell className="capitalize">{cart.status}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(cart.value)}</TableCell>
+              {topReps.map((item) => (
+                <TableRow key={item.name}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="text-right">{formatNumber(item.orders)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(item.revenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(item.profit)}</TableCell>
+                  <TableCell className="text-right">{formatPercent(item.margin)}</TableCell>
                 </TableRow>
               ))}
-              {!filteredCarts.length && (
+              {!topReps.length && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                    No abandoned carts match the selected filters.
+                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                    No rep performance data for the selected filters.
                   </TableCell>
                 </TableRow>
               )}

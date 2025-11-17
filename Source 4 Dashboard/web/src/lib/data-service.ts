@@ -121,7 +121,7 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
           rep: (row.rep as string) || "Unknown Rep",
           invoiceTotal: Number(row.invoice_total ?? row.sales_total ?? 0) || 0,
           salesTotal: Number(row.sales_total ?? row.invoice_total ?? 0) || 0,
-          orders: Number(row.orders ?? row.order_quantity ?? 0) || 0,
+          orders: Number(row.orders ?? 0) || 0,
           orderQuantity: Number(row.order_quantity ?? row.orders ?? 0) || 0,
           profitTotal: Number(row.profit_total ?? 0) || 0,
         };
