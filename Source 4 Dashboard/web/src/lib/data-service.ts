@@ -53,7 +53,53 @@ const SAMPLE_SALES_RECORDS: SalesRecord[] = [
 
 const SALES_DATA_START_DATE = "2022-11-01";
 const SALES_DATA_START_MONTH = "2022-11";
-const SALES_DATA_START = new Date(`${SALES_DATA_START_DATE}T00:00:00Z`);
+const SALES_DATA_START_ISO = `${SALES_DATA_START_DATE}T00:00:00.000Z`;
+const SALES_DATA_START = new Date(SALES_DATA_START_ISO);
+
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const DATETIME_WITH_OPTIONAL_TZ_REGEX = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/i;
+
+function coerceIsoDate(rawDate: string | null, monthValue: string | null) {
+  const stats = { source: "fallback" as "raw" | "month" | "fallback" };
+
+  const normalise = (value: string | null): string | null => {
+    if (!value) return null;
+    let trimmed = value.trim();
+    if (!trimmed) return null;
+
+    if (DATE_ONLY_REGEX.test(trimmed)) {
+      trimmed = `${trimmed}T00:00:00Z`;
+    } else if (/^\d{4}-\d{2}-\d{2}\s\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+      trimmed = `${trimmed.replace(" ", "T")}Z`;
+    } else if (DATETIME_WITH_OPTIONAL_TZ_REGEX.test(trimmed)) {
+      trimmed = trimmed.replace(" ", "T");
+      if (!/[Zz]$/.test(trimmed) && !/[+-]\d{2}:\d{2}$/.test(trimmed)) {
+        trimmed = `${trimmed}Z`;
+      }
+    }
+
+    const parsed = Date.parse(trimmed);
+    if (Number.isNaN(parsed)) return null;
+    return new Date(parsed).toISOString();
+  };
+
+  const fromRaw = normalise(rawDate);
+  if (fromRaw) {
+    stats.source = "raw";
+    return { iso: fromRaw, stats };
+  }
+
+  const month = typeof monthValue === "string" ? monthValue.trim() : "";
+  if (month && /^\d{4}-\d{2}$/.test(month)) {
+    const fromMonth = normalise(`${month}-15T00:00:00Z`);
+    if (fromMonth) {
+      stats.source = "month";
+      return { iso: fromMonth, stats };
+    }
+  }
+
+  return { iso: SALES_DATA_START_ISO, stats };
+}
 
 export async function getSalesRecords(limit?: number): Promise<ApiResponse<SalesRecord[]>> {
   try {
@@ -68,8 +114,7 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
       const to = from + pageSize - 1;
       const { data, error } = await supabase
         .from("all_time_sales")
-        .select("id, date, vendor, rep, invoice_total, sales_total, orders, order_quantity, profit_total")
-        .gte("date", SALES_DATA_START_DATE)
+        .select("id, date, month, vendor, rep, invoice_total, sales_total, orders, order_quantity, profit_total")
         .order("date", { ascending: true })
         .range(from, to);
 
@@ -103,20 +148,18 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
 
     const rows = limit ? allRows.slice(-limit) : allRows;
 
+    let monthFallbackCount = 0;
+    let defaultFallbackCount = 0;
+
     const records: SalesRecord[] = rows
       .map((row, index) => {
-        const rawDate = row.date as string | null;
-        const parsedDate = rawDate ? new Date(rawDate) : null;
-        const isValidDate = parsedDate && !Number.isNaN(parsedDate.getTime());
-
-        // Log first few dates to debug
-        if (index < 5) {
-          console.log(`[getSalesRecords] Row ${index}: rawDate="${rawDate}", parsedDate="${parsedDate?.toISOString()}", isValid=${isValidDate}`);
-        }
+        const { iso, stats } = coerceIsoDate(row.date as string | null, row.month as string | null);
+        if (stats.source === "month") monthFallbackCount += 1;
+        if (stats.source === "fallback") defaultFallbackCount += 1;
 
         return {
           id: (row.id as string) ?? `record-${index}`,
-          date: isValidDate ? parsedDate.toISOString() : '',
+          date: iso,
           vendor: (row.vendor as string) || "Unknown Vendor",
           rep: (row.rep as string) || "Unknown Rep",
           invoiceTotal: Number(row.invoice_total ?? row.sales_total ?? 0) || 0,
@@ -127,10 +170,16 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
         };
       })
       .filter((record) => {
-        if (record.date === '') return false;
+        if (!record.date) return false;
         const parsedDate = new Date(record.date);
         return !Number.isNaN(parsedDate.getTime()) && parsedDate >= SALES_DATA_START;
       });
+
+    if (monthFallbackCount > 0 || defaultFallbackCount > 0) {
+      console.warn(
+        `[getSalesRecords] Adjusted ${monthFallbackCount} rows using month fallback and ${defaultFallbackCount} rows using default start date`,
+      );
+    }
 
     return {
       data: records,
