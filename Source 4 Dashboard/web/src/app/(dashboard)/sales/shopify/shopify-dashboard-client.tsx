@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   ShoppingCart,
   DollarSign,
@@ -9,6 +9,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  Calendar,
 } from "lucide-react";
 import {
   ShopifyDailySales,
@@ -28,6 +29,8 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+
+type DateRangePreset = "7d" | "30d" | "90d" | "ytd" | "all" | "custom";
 
 interface ShopifyDashboardClientProps {
   dailySales: ApiResponse<ShopifyDailySales[]> & { refreshedAt: string };
@@ -71,12 +74,81 @@ export function ShopifyDashboardClient({
   topCustomers,
   summaryStats,
 }: ShopifyDashboardClientProps) {
-  // Calculate 30-day and 7-day totals for comparison
-  const { last30Days, last7Days, previousPeriod } = useMemo(() => {
-    const sorted = [...dailySales.data].sort((a, b) => b.date.localeCompare(a.date));
-    const last30 = sorted.slice(0, 30);
-    const last7 = sorted.slice(0, 7);
-    const prev30 = sorted.slice(30, 60);
+  // Date range filter state
+  const [datePreset, setDatePreset] = useState<DateRangePreset>("30d");
+  const [customStartDate, setCustomStartDate] = useState("");
+  const [customEndDate, setCustomEndDate] = useState("");
+
+  // Calculate date range based on preset
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const today = now.toISOString().split("T")[0];
+
+    switch (datePreset) {
+      case "7d": {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 7);
+        return { start: start.toISOString().split("T")[0], end: today };
+      }
+      case "30d": {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 30);
+        return { start: start.toISOString().split("T")[0], end: today };
+      }
+      case "90d": {
+        const start = new Date(now);
+        start.setDate(start.getDate() - 90);
+        return { start: start.toISOString().split("T")[0], end: today };
+      }
+      case "ytd": {
+        const start = new Date(now.getFullYear(), 0, 1);
+        return { start: start.toISOString().split("T")[0], end: today };
+      }
+      case "custom": {
+        return {
+          start: customStartDate || "2020-01-01",
+          end: customEndDate || today
+        };
+      }
+      case "all":
+      default:
+        return { start: "2020-01-01", end: today };
+    }
+  }, [datePreset, customStartDate, customEndDate]);
+
+  // Filter data by date range
+  const filteredDailySales = useMemo(() => {
+    return dailySales.data.filter(
+      (d) => d.date >= dateRange.start && d.date <= dateRange.end
+    );
+  }, [dailySales.data, dateRange]);
+
+  const filteredOrders = useMemo(() => {
+    return recentOrders.data.filter((o) => {
+      const orderDate = o.createdAt.split("T")[0];
+      return orderDate >= dateRange.start && orderDate <= dateRange.end;
+    });
+  }, [recentOrders.data, dateRange]);
+
+  // Calculate period totals and comparison
+  const { currentPeriod, previousPeriod } = useMemo(() => {
+    const sorted = [...filteredDailySales].sort((a, b) => b.date.localeCompare(a.date));
+
+    // Calculate previous period of same length
+    const periodDays = Math.ceil(
+      (new Date(dateRange.end).getTime() - new Date(dateRange.start).getTime()) /
+      (1000 * 60 * 60 * 24)
+    );
+
+    const prevStart = new Date(dateRange.start);
+    prevStart.setDate(prevStart.getDate() - periodDays);
+    const prevEnd = new Date(dateRange.start);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+
+    const prevData = dailySales.data.filter(
+      (d) => d.date >= prevStart.toISOString().split("T")[0] &&
+             d.date <= prevEnd.toISOString().split("T")[0]
+    );
 
     const sumSales = (arr: ShopifyDailySales[]) =>
       arr.reduce((sum, d) => sum + d.totalSales, 0);
@@ -84,53 +156,99 @@ export function ShopifyDashboardClient({
       arr.reduce((sum, d) => sum + d.ordersCount, 0);
 
     return {
-      last30Days: {
-        sales: sumSales(last30),
-        orders: sumOrders(last30),
-      },
-      last7Days: {
-        sales: sumSales(last7),
-        orders: sumOrders(last7),
+      currentPeriod: {
+        sales: sumSales(sorted),
+        orders: sumOrders(sorted),
       },
       previousPeriod: {
-        sales: sumSales(prev30),
-        orders: sumOrders(prev30),
+        sales: sumSales(prevData),
+        orders: sumOrders(prevData),
       },
     };
-  }, [dailySales.data]);
+  }, [filteredDailySales, dailySales.data, dateRange]);
 
   // Calculate growth percentages
   const salesGrowth = previousPeriod.sales > 0
-    ? ((last30Days.sales - previousPeriod.sales) / previousPeriod.sales) * 100
+    ? ((currentPeriod.sales - previousPeriod.sales) / previousPeriod.sales) * 100
     : 0;
   const ordersGrowth = previousPeriod.orders > 0
-    ? ((last30Days.orders - previousPeriod.orders) / previousPeriod.orders) * 100
+    ? ((currentPeriod.orders - previousPeriod.orders) / previousPeriod.orders) * 100
     : 0;
 
-  // Prepare chart data (last 30 days)
+  // Calculate average order value for filtered period
+  const filteredAOV = currentPeriod.orders > 0
+    ? currentPeriod.sales / currentPeriod.orders
+    : 0;
+
+  // Prepare chart data
   const chartData = useMemo(() => {
-    const sorted = [...dailySales.data]
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .slice(-30);
+    const sorted = [...filteredDailySales]
+      .sort((a, b) => a.date.localeCompare(b.date));
     return sorted.map((day) => ({
       date: formatDate(day.date),
       sales: day.totalSales,
       orders: day.ordersCount,
     }));
-  }, [dailySales.data]);
+  }, [filteredDailySales]);
+
+  // Get preset label for display
+  const getPresetLabel = (preset: DateRangePreset) => {
+    switch (preset) {
+      case "7d": return "Last 7 Days";
+      case "30d": return "Last 30 Days";
+      case "90d": return "Last 90 Days";
+      case "ytd": return "Year to Date";
+      case "all": return "All Time";
+      case "custom": return "Custom Range";
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Shopify Sales</h1>
           <p className="text-muted-foreground">
             E-commerce performance from your Shopify store
           </p>
         </div>
-        <div className="text-xs text-muted-foreground">
-          Last synced: {new Date(summaryStats.refreshedAt).toLocaleString()}
+        <div className="flex flex-col gap-2 sm:items-end">
+          <div className="flex items-center gap-2">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <select
+              value={datePreset}
+              onChange={(e) => setDatePreset(e.target.value as DateRangePreset)}
+              className="rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            >
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="90d">Last 90 Days</option>
+              <option value="ytd">Year to Date</option>
+              <option value="all">All Time</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          {datePreset === "custom" && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span className="text-muted-foreground">to</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="rounded-md border bg-background px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+          )}
+          <div className="text-xs text-muted-foreground">
+            Last synced: {new Date(summaryStats.refreshedAt).toLocaleString()}
+          </div>
         </div>
       </div>
 
@@ -139,13 +257,13 @@ export function ShopifyDashboardClient({
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-muted-foreground">
-              Total Revenue (30d)
+              Total Revenue
             </div>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <div className="text-2xl font-bold">
-              {formatCurrency(last30Days.sales)}
+              {formatCurrency(currentPeriod.sales)}
             </div>
             {salesGrowth !== 0 && (
               <div
@@ -167,13 +285,13 @@ export function ShopifyDashboardClient({
         <div className="rounded-lg border bg-card p-4">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium text-muted-foreground">
-              Orders (30d)
+              Orders
             </div>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
             <div className="text-2xl font-bold">
-              {formatNumber(last30Days.orders)}
+              {formatNumber(currentPeriod.orders)}
             </div>
             {ordersGrowth !== 0 && (
               <div
@@ -201,7 +319,7 @@ export function ShopifyDashboardClient({
           </div>
           <div className="mt-2">
             <div className="text-2xl font-bold">
-              {formatCurrency(summaryStats.data.averageOrderValue)}
+              {formatCurrency(filteredAOV)}
             </div>
           </div>
         </div>
@@ -225,7 +343,7 @@ export function ShopifyDashboardClient({
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Sales Trend */}
         <div className="rounded-lg border bg-card p-4">
-          <h3 className="mb-4 font-semibold">Sales Trend (30 Days)</h3>
+          <h3 className="mb-4 font-semibold">Sales Trend ({getPresetLabel(datePreset)})</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData}>
@@ -262,7 +380,7 @@ export function ShopifyDashboardClient({
 
         {/* Orders Trend */}
         <div className="rounded-lg border bg-card p-4">
-          <h3 className="mb-4 font-semibold">Orders (30 Days)</h3>
+          <h3 className="mb-4 font-semibold">Orders ({getPresetLabel(datePreset)})</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData}>
@@ -393,7 +511,7 @@ export function ShopifyDashboardClient({
               </tr>
             </thead>
             <tbody>
-              {recentOrders.data.slice(0, 15).map((order) => (
+              {filteredOrders.slice(0, 15).map((order) => (
                 <tr key={order.orderId} className="border-b last:border-0">
                   <td className="py-2 font-medium">{order.name}</td>
                   <td className="py-2">
@@ -423,10 +541,10 @@ export function ShopifyDashboardClient({
                   </td>
                 </tr>
               ))}
-              {recentOrders.data.length === 0 && (
+              {filteredOrders.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                    No orders found. Run a Shopify sync to load data.
+                    No orders found for selected date range.
                   </td>
                 </tr>
               )}
