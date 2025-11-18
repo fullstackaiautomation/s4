@@ -1,14 +1,61 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { SectionHeader } from "@/components/section-header";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricTile } from "@/components/ui/metric";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
-import { useDashboardFilters } from "@/components/providers/dashboard-filters";
-import { getRangeBounds, parseDate, withinRange } from "@/lib/filter-utils";
+import { parseDate } from "@/lib/filter-utils";
 import { formatCurrency, formatNumber } from "@/lib/utils";
+
+// Date range filter types and options
+type DateRangeOption = "this-year" | "last-year" | "this-month" | "last-month" | "all-time";
+
+const DATE_RANGE_OPTIONS: { label: string; value: DateRangeOption }[] = [
+  { label: "This Year", value: "this-year" },
+  { label: "Last Year", value: "last-year" },
+  { label: "This Month", value: "this-month" },
+  { label: "Last Month", value: "last-month" },
+  { label: "All Time", value: "all-time" },
+];
+
+function getDateRange(option: DateRangeOption): { start: Date; end: Date } {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  switch (option) {
+    case "this-year":
+      return {
+        start: new Date(currentYear, 0, 1),
+        end: new Date(currentYear, 11, 31, 23, 59, 59, 999),
+      };
+    case "last-year":
+      return {
+        start: new Date(currentYear - 1, 0, 1),
+        end: new Date(currentYear - 1, 11, 31, 23, 59, 59, 999),
+      };
+    case "this-month":
+      return {
+        start: new Date(currentYear, currentMonth, 1),
+        end: new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999),
+      };
+    case "last-month":
+      const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
+      const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
+      return {
+        start: new Date(lastMonthYear, lastMonth, 1),
+        end: new Date(lastMonthYear, lastMonth + 1, 0, 23, 59, 59, 999),
+      };
+    case "all-time":
+    default:
+      return {
+        start: new Date(2000, 0, 1),
+        end: new Date(2100, 11, 31, 23, 59, 59, 999),
+      };
+  }
+}
 
 type HomeRunRecord = Awaited<ReturnType<typeof import("@/lib/data-service").getHomeRuns>>["data"][number] & {
   closedAtIso?: string;
@@ -20,22 +67,17 @@ type HomeRunsClientProps = {
 };
 
 export function HomeRunsClient({ records, refreshedAt }: HomeRunsClientProps) {
-  const { timeRange, vendor, rep } = useDashboardFilters();
-
-  const { start: rangeStart, end: rangeEnd } = useMemo(() => {
-    const dates = records.map((record) => parseDate(record.closedAtIso || record.closedAt || record.date));
-    return getRangeBounds(timeRange, dates);
-  }, [records, timeRange]);
+  // Date range filter state - default to "this-year" to show all recent home runs
+  const [dateRangeOption, setDateRangeOption] = useState<DateRangeOption>("this-year");
 
   const filteredRecords = useMemo(() => {
+    const range = getDateRange(dateRangeOption);
     return records.filter((record) => {
       const date = parseDate(record.closedAtIso || record.closedAt || record.date);
-      if (!withinRange(date, rangeStart, rangeEnd)) return false;
-      if (vendor && record.vendor !== vendor) return false;
-      if (rep && record.rep !== rep) return false;
-      return true;
+      if (!date) return false;
+      return date >= range.start && date <= range.end;
     });
-  }, [rangeEnd, rangeStart, records, rep, vendor]);
+  }, [records, dateRangeOption]);
 
   const totalValue = filteredRecords.reduce((sum, record) => sum + (record.value ?? 0), 0);
   const averageValue = filteredRecords.length ? totalValue / filteredRecords.length : 0;
@@ -57,11 +99,26 @@ export function HomeRunsClient({ records, refreshedAt }: HomeRunsClientProps) {
 
   return (
     <div className="space-y-10">
-      <SectionHeader
-        title="Home Runs"
-        description="Highlight the largest wins, celebrate rep performance, and replicate success playbooks."
-        badge="Sales"
-      />
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <SectionHeader
+          title="Home Runs"
+          description="Highlight the largest wins, celebrate rep performance, and replicate success playbooks."
+          badge="Sales"
+        />
+        <div className="flex items-center gap-2">
+          <select
+            value={dateRangeOption}
+            onChange={(e) => setDateRangeOption(e.target.value as DateRangeOption)}
+            className="h-9 rounded-md border border-border bg-card px-3 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            {DATE_RANGE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricTile
