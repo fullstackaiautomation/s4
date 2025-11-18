@@ -402,6 +402,9 @@ export async function getHomeRuns(): Promise<
       sales: number;
       date: string;
       value: number;
+      profit?: number;
+      margin?: number;
+      customer?: string;
       vendor: string;
       invoice: string;
       rep: string;
@@ -417,6 +420,9 @@ export async function getHomeRuns(): Promise<
         sales: 15000,
         date: "2024-11-10",
         value: 85000,
+        profit: 25500,
+        margin: 0.3,
+        customer: "Acme Manufacturing",
         vendor: "TechCorp",
         invoice: "INV-2024-001",
         rep: "Alice Johnson",
@@ -429,6 +435,9 @@ export async function getHomeRuns(): Promise<
         sales: 22000,
         date: "2024-11-09",
         value: 125000,
+        profit: 43750,
+        margin: 0.35,
+        customer: "Omni Logistics",
         vendor: "DataSystems Inc",
         invoice: "INV-2024-002",
         rep: "Bob Smith",
@@ -441,6 +450,9 @@ export async function getHomeRuns(): Promise<
         sales: 18000,
         date: "2024-11-08",
         value: 95000,
+        profit: 26600,
+        margin: 0.28,
+        customer: "Brightline Distribution",
         vendor: "CloudVendor",
         invoice: "INV-2024-003",
         rep: "Carol Davis",
@@ -456,7 +468,7 @@ export async function getHomeRuns(): Promise<
     const supabase = await getSupabaseServerClient();
     const { data, error } = await supabase
       .from("all_time_sales")
-      .select("invoice_number, vendor, rep, invoice_total, sales_total, date, description")
+      .select("invoice_number, vendor, rep, invoice_total, sales_total, profit_total, date, description, customer")
       .gte("date", SALES_DATA_START_DATE)
       .not("invoice_number", "is", null)
       .order("invoice_total", { ascending: false })
@@ -476,10 +488,12 @@ export async function getHomeRuns(): Promise<
       vendor: string;
       rep: string;
       value: number;
+      profit: number;
       closedAt: string;
       closedAtIso: string;
       product: string;
       sales: number;
+      customer?: string;
     };
 
     const aggregate = new Map<string, InvoiceAggregate>();
@@ -513,17 +527,21 @@ export async function getHomeRuns(): Promise<
           vendor: (row.vendor as string) || "Unknown Vendor",
           rep: (row.rep as string) || "Unknown Rep",
           value: 0,
+          profit: 0,
           closedAt: formatDate(row.date as string | null),
           closedAtIso: isoDate,
           product: (row.description as string) || "High-Value Order",
           sales: 0,
+          customer: (row.customer as string) || undefined,
         });
       }
 
       const entry = aggregate.get(invoice)!;
       const lineRevenue = Number(row.sales_total ?? row.invoice_total ?? 0) || 0;
+      const lineProfit = Number(row.profit_total ?? 0) || 0;
       entry.value += lineRevenue;
       entry.sales += lineRevenue;
+      entry.profit += lineProfit;
       if (!entry.product && row.description) {
         entry.product = row.description as string;
       }
@@ -532,6 +550,9 @@ export async function getHomeRuns(): Promise<
       }
       if (!entry.rep && row.rep) {
         entry.rep = row.rep as string;
+      }
+      if (!entry.customer && row.customer) {
+        entry.customer = row.customer as string;
       }
     });
 
@@ -544,6 +565,9 @@ export async function getHomeRuns(): Promise<
         sales: item.sales,
         date: item.closedAt,
         value: item.value,
+        profit: item.profit,
+        margin: item.value > 0 ? item.profit / item.value : undefined,
+        customer: item.customer,
         vendor: item.vendor,
         invoice: item.invoice,
         rep: item.rep,

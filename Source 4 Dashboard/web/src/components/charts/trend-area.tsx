@@ -6,6 +6,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Line,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -18,6 +19,9 @@ type TrendAreaProps = {
   data: Array<{ date: string; revenue: number; profit?: number }>;
   revenueLabel?: string;
   profitLabel?: string;
+  primaryLabel?: string;
+  secondaryLabel?: string;
+  legendPlacement?: "overlay" | "none";
 };
 
 type TooltipEntry = {
@@ -64,9 +68,15 @@ const CustomTooltip = ({ active, payload, label, revenueLabel, profitLabel }: Cu
 
 export function TrendArea({
   data,
-  revenueLabel = "Revenue",
-  profitLabel = "Profit",
+  revenueLabel,
+  profitLabel,
+  primaryLabel,
+  secondaryLabel,
+  legendPlacement = "overlay",
 }: TrendAreaProps) {
+  const resolvedRevenueLabel = revenueLabel ?? primaryLabel ?? "Revenue";
+  const resolvedProfitLabel = profitLabel ?? secondaryLabel ?? "Profit";
+
   const hasProfit = useMemo(() => data.some((item) => typeof item.profit === "number"), [data]);
 
   const maxValue = useMemo(() => {
@@ -95,7 +105,7 @@ export function TrendArea({
   return (
     <div className="relative h-[280px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 32, right: 16, left: 0, bottom: 0 }} barGap={12}>
+        <BarChart data={data} margin={{ top: 32, right: 16, left: 0, bottom: 0 }} barGap={6} barCategoryGap="20%">
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" vertical={false} />
           <XAxis dataKey="date" tickLine={false} axisLine={false} dy={12} tick={{ fontSize: 12, fill: "#64748b" }} />
           <YAxis
@@ -109,26 +119,49 @@ export function TrendArea({
           />
           <Tooltip
             cursor={{ fill: "rgba(148,163,184,0.08)" }}
-            content={<CustomTooltip revenueLabel={revenueLabel} profitLabel={profitLabel} />}
+            content={<CustomTooltip revenueLabel={resolvedRevenueLabel} profitLabel={resolvedProfitLabel} />}
           />
-          <Bar dataKey="revenue" name={revenueLabel} fill="rgba(32,71,255,0.85)" radius={[6, 6, 0, 0]} />
+          <Bar
+            dataKey="revenue"
+            name={resolvedRevenueLabel}
+            fill="rgba(32,71,255,0.85)"
+            radius={[6, 6, 0, 0]}
+            barSize={32}
+          />
           {hasProfit ? (
-            <Bar dataKey="profit" name={profitLabel} fill="rgba(15,199,198,0.85)" radius={[6, 6, 0, 0]} />
+            <Bar
+              dataKey="profit"
+              name={resolvedProfitLabel}
+              fill="rgba(15,199,198,0.85)"
+              radius={[6, 6, 0, 0]}
+              barSize={32}
+            />
           ) : null}
+          <Line
+            type="monotone"
+            dataKey="revenue"
+            name={`${resolvedRevenueLabel} Trend`}
+            stroke="rgba(32,71,255,1)"
+            strokeWidth={3}
+            dot={{ r: 2.5, strokeWidth: 0 }}
+            activeDot={{ r: 4 }}
+          />
         </BarChart>
       </ResponsiveContainer>
-      <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full bg-[rgba(32,71,255,0.85)]" />
-          <span>{revenueLabel}</span>
-        </div>
-        {hasProfit ? (
+      {legendPlacement === "overlay" ? (
+        <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">
           <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[rgba(15,199,198,0.85)]" />
-            <span>{profitLabel}</span>
+            <span className="h-2.5 w-2.5 rounded-full bg-[rgba(32,71,255,0.85)]" />
+            <span>{resolvedRevenueLabel}</span>
           </div>
-        ) : null}
-      </div>
+          {hasProfit ? (
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[rgba(15,199,198,0.85)]" />
+              <span>{resolvedProfitLabel}</span>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

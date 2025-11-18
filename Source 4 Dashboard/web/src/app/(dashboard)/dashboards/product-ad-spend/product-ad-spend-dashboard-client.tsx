@@ -40,7 +40,7 @@ function monthToDate(month: string) {
 }
 
 export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, categorySummary, topSkus }: ProductAdSpendDashboardClientProps) {
-  const { timeRange, vendor } = useDashboardFilters();
+  const { timeRange, vendor, customRange } = useDashboardFilters();
 
   const candidateDates = useMemo(() => {
     const months = monthlySummary.data.map((row) => monthToDate(row.month));
@@ -49,8 +49,8 @@ export function ProductAdSpendDashboardClient({ monthlySummary, vendorSummary, c
   }, [monthlySummary.data, topSkus.data]);
 
   const { start: rangeStart, end: rangeEnd } = useMemo(
-    () => getRangeBounds(timeRange, candidateDates),
-    [candidateDates, timeRange],
+    () => getRangeBounds(timeRange, candidateDates, customRange),
+    [candidateDates, customRange, timeRange],
   );
 
   const filteredTopSkus = useMemo(() => {

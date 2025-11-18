@@ -10,6 +10,7 @@ type MetricProps = {
   icon?: React.ReactNode;
   accent?: "primary" | "secondary" | "success" | "warning" | "danger";
   className?: string;
+  sideMetrics?: Array<{ label: string; value: string }>;
 };
 
 const accentClass: Record<NonNullable<MetricProps["accent"]>, string> = {
@@ -27,6 +28,7 @@ export function MetricTile({
   icon,
   accent = "primary",
   className,
+  sideMetrics,
 }: MetricProps) {
   const deltaIcon = delta
     ? delta.direction === "up"
@@ -39,23 +41,37 @@ export function MetricTile({
   return (
     <div
       className={cn(
-        "flex h-full flex-col justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-subtle",
+        "flex h-full flex-col rounded-lg border border-border bg-card p-4 shadow-subtle",
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-muted-foreground">{label}</div>
-        {icon ? (
-          <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", accentClass[accent])}>{icon}</div>
+      <div className="flex gap-4">
+        <div className="flex flex-1 flex-col justify-between gap-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-medium text-muted-foreground">{label}</div>
+            {icon ? (
+              <div className={cn("flex h-9 w-9 items-center justify-center rounded-full", accentClass[accent])}>{icon}</div>
+            ) : null}
+          </div>
+          <div className="text-2xl font-semibold text-foreground">{value}</div>
+          {delta ? (
+            <div className={cn("flex items-center gap-1 text-xs font-medium", accentClass[accent])}>
+              <span>{deltaIcon}</span>
+              <span>{delta.value}</span>
+            </div>
+          ) : null}
+        </div>
+        {sideMetrics && sideMetrics.length ? (
+          <div className="flex shrink-0 flex-col items-end justify-center gap-1 text-xs text-muted-foreground">
+            {sideMetrics.map((metric) => (
+              <div key={metric.label} className="flex items-center gap-2 whitespace-nowrap">
+                <span>{metric.label}</span>
+                <span className="font-semibold text-foreground">{metric.value}</span>
+              </div>
+            ))}
+          </div>
         ) : null}
       </div>
-      <div className="text-2xl font-semibold text-foreground">{value}</div>
-      {delta ? (
-        <div className={cn("flex items-center gap-1 text-xs font-medium", accentClass[accent])}>
-          <span>{deltaIcon}</span>
-          <span>{delta.value}</span>
-        </div>
-      ) : null}
     </div>
   );
 }

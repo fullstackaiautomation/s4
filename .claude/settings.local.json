@@ -15,7 +15,18 @@
       "Bash(set NEXT_PUBLIC_SUPABASE_URL=https://tcryasuisocelektmrmb.supabase.co)",
       "Bash(set SUPABASE_SERVICE_ROLE_KEY:*)",
       "Bash(npx tsx:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(node -e:*)",
+      "Bash(timeout /t 15 /nobreak)",
+      "Bash(powershell -Command \"$body = @{ fullSync = $true } | ConvertTo-Json; Invoke-RestMethod -Method POST -Uri ''http://localhost:3002/api/sync/ga4'' -Body $body -ContentType ''application/json''\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Method POST -Uri ''http://localhost:3002/api/sync/ga4'' -Body ''{\"\"fullSync\"\":true}'' -ContentType ''application/json''\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Method POST -Uri ''http://localhost:3002/api/sync/asana'' -Body ''{\"\"fullSync\"\":false}'' -ContentType ''application/json''\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Method POST -Uri ''http://localhost:3002/api/sync/ga4'' -Body ''{\"\"fullSync\"\":false,\"\"dateRange\"\":{\"\"startDate\"\":\"\"30daysAgo\"\",\"\"endDate\"\":\"\"today\"\"}}'' -ContentType ''application/json''\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Method POST -Uri ''http://localhost:3002/api/sync/ga4'' -Body ''{\"\"fullSync\"\":false}'' -ContentType ''application/json''\")",
+      "Bash(powershell -Command \"Invoke-RestMethod -Method POST -Uri ''http://localhost:3010/api/sync/ga4'' -Body ''{\"\"fullSync\"\":false}'' -ContentType ''application/json''\")",
+      "Bash(git reset:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(npx next dev:*)"
     ],
     "deny": [],
     "ask": []

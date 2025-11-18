@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { TrendArea } from "@/components/charts/trend-area";
 import { SectionHeader } from "@/components/section-header";
@@ -30,6 +30,9 @@ type HomeRunRecord = {
   sales: number;
   date: string;
   value: number;
+  profit?: number;
+  margin?: number;
+  customer?: string;
   vendor: string;
   invoice: string;
   rep: string;
@@ -71,6 +74,7 @@ const DUMMY_VENDOR_PATTERN = /^Vendor [A-Z]$/;
 const DUMMY_REPS = new Set(["Alice Johnson", "Bob Smith", "Carol Davis"]);
 const MIN_VALID_SALES_DATE = new Date("2022-11-01T00:00:00Z");
 const MIN_VALID_SALES_MONTH_KEY = "2022-11";
+const YEAR_SCOPE = [2025, 2024, 2023] as const;
 
 function buildPercentDelta(current: number, previous: number, canCompare: boolean, suffix = "vs prior"): MetricDelta | undefined {
   if (!canCompare) {
@@ -168,6 +172,12 @@ function endOfMonth(date: Date) {
   return result;
 }
 
+function startOfDay(date: Date) {
+  const result = new Date(date);
+  result.setHours(0, 0, 0, 0);
+  return result;
+}
+
 function endOfDay(date: Date) {
   const result = new Date(date);
   result.setHours(23, 59, 59, 999);
@@ -175,7 +185,14 @@ function endOfDay(date: Date) {
 }
 
 export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, snapshots }: SalesDashboardClientProps) {
-  const { timeRange, vendor, rep } = useDashboardFilters();
+  const { timeRange, vendor, rep, customRange } = useDashboardFilters();
+
+  const datasetStats = useMemo(() => {
+    const totalRevenue = sales.reduce((sum, record) => sum + record.invoiceTotal, 0);
+    const totalProfit = sales.reduce((sum, record) => sum + (record.profitTotal ?? 0), 0);
+    const totalOrders = sales.reduce((sum, record) => sum + record.orders, 0);
+    return { count: sales.length, totalRevenue, totalProfit, totalOrders };
+  }, [sales]);
 
   const sortedSales = useMemo(() => {
     return [...sales]
@@ -190,6 +207,10 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     });
   }, [sales]);
 
+  useEffect(() => {
+    console.log("[SalesDashboard] dataset stats", datasetStats);
+  }, [datasetStats]);
+
   const entityFilteredSales = useMemo(() => {
     return sortedSales.filter((record) => {
       if (vendor && record.vendor !== vendor) return false;
@@ -197,6 +218,105 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       return true;
     });
   }, [rep, sortedSales, vendor]);
+
+  const yearlyMonthlyAverages = useMemo(() => {
+    type MonthlyTotals = { revenue: number; profit: number; orders: number };
+    const aggregates = new Map<number, Map<string, MonthlyTotals>>();
+    YEAR_SCOPE.forEach((year) => aggregates.set(year, new Map()));
+
+    entityFilteredSales.forEach((record) => {
+      const parsedDate = normalizeDate(record.date);
+      if (!parsedDate) return;
+      const year = parsedDate.getFullYear();
+      if (!YEAR_SCOPE.includes(year as (typeof YEAR_SCOPE)[number])) return;
+
+      const month = monthKey(parsedDate);
+      const yearBuckets = aggregates.get(year)!;
+      const bucket = yearBuckets.get(month) ?? { revenue: 0, profit: 0, orders: 0 };
+      bucket.revenue += record.invoiceTotal;
+      bucket.profit += record.profitTotal ?? 0;
+      bucket.orders += record.orders;
+      yearBuckets.set(month, bucket);
+    });
+
+    const result: Record<number, { revenue: number | null; profit: number | null; orders: number | null; margin: number | null }> = {};
+
+    YEAR_SCOPE.forEach((year) => {
+      const entries = Array.from(aggregates.get(year)!.values());
+      if (!entries.length) {
+        result[year] = { revenue: null, profit: null, orders: null, margin: null };
+        return;
+      }
+
+      const monthCount = entries.length;
+      const totalRevenue = entries.reduce((sum, entry) => sum + entry.revenue, 0);
+      const totalProfit = entries.reduce((sum, entry) => sum + entry.profit, 0);
+      const totalOrders = entries.reduce((sum, entry) => sum + entry.orders, 0);
+      const marginSamples = entries
+        .filter((entry) => entry.revenue > 0)
+        .map((entry) => entry.profit / entry.revenue);
+      const marginAvg = marginSamples.length
+        ? marginSamples.reduce((sum, value) => sum + value, 0) / marginSamples.length
+        : null;
+
+      result[year] = {
+        revenue: totalRevenue / monthCount,
+        profit: totalProfit / monthCount,
+        orders: totalOrders / monthCount,
+        margin: marginAvg,
+      };
+    });
+
+    return result;
+  }, [entityFilteredSales]);
+
+  const revenueSideMetrics = useMemo(
+    () =>
+      YEAR_SCOPE.map((year) => {
+        const value = yearlyMonthlyAverages[year]?.revenue ?? null;
+        return {
+          label: `${year} avg`,
+          value: value != null ? formatCurrency(value) : "—",
+        };
+      }),
+    [yearlyMonthlyAverages],
+  );
+
+  const profitSideMetrics = useMemo(
+    () =>
+      YEAR_SCOPE.map((year) => {
+        const value = yearlyMonthlyAverages[year]?.profit ?? null;
+        return {
+          label: `${year} avg`,
+          value: value != null ? formatCurrency(value) : "—",
+        };
+      }),
+    [yearlyMonthlyAverages],
+  );
+
+  const ordersSideMetrics = useMemo(
+    () =>
+      YEAR_SCOPE.map((year) => {
+        const value = yearlyMonthlyAverages[year]?.orders ?? null;
+        return {
+          label: `${year} avg`,
+          value: value != null ? formatNumber(value) : "—",
+        };
+      }),
+    [yearlyMonthlyAverages],
+  );
+
+  const marginSideMetrics = useMemo(
+    () =>
+      YEAR_SCOPE.map((year) => {
+        const value = yearlyMonthlyAverages[year]?.margin ?? null;
+        return {
+          label: `${year} avg`,
+          value: value != null ? formatPercent(value) : "—",
+        };
+      }),
+    [yearlyMonthlyAverages],
+  );
 
   const latestRelevantSaleDate = useMemo(() => {
     // Use the most recent sale date from actual data, not today's date
@@ -222,6 +342,17 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     previousRange: DateRange | null;
   }>(() => {
     const defaultRangeEnd = endOfDay(latestRelevantSaleDate);
+
+    if (timeRange === "custom") {
+      const customStart = customRange.start ? startOfDay(customRange.start) : null;
+      const customEnd = customRange.end ? endOfDay(customRange.end) : defaultRangeEnd;
+
+      return {
+        rangeStart: customStart,
+        rangeEnd: customEnd,
+        previousRange: null,
+      };
+    }
 
     if (timeRange === "all") {
       return {
@@ -274,7 +405,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       rangeEnd: currentRangeEnd,
       previousRange,
     };
-  }, [latestRelevantSaleDate, timeRange]);
+  }, [customRange.end, customRange.start, latestRelevantSaleDate, timeRange]);
 
   const filteredSales = useMemo(() => {
     return entityFilteredSales.filter((record) => {
@@ -285,6 +416,23 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       return true;
     });
   }, [entityFilteredSales, rangeEnd, rangeStart]);
+
+  useEffect(() => {
+    const filteredRevenue = filteredSales.reduce((sum, record) => sum + record.invoiceTotal, 0);
+    const filteredOrders = filteredSales.reduce((sum, record) => sum + record.orders, 0);
+    const filteredProfit = filteredSales.reduce((sum, record) => sum + (record.profitTotal ?? 0), 0);
+    console.log("[SalesDashboard] filtered stats", {
+      timeRange,
+      vendor,
+      rep,
+      count: filteredSales.length,
+      filteredRevenue,
+      filteredProfit,
+      filteredOrders,
+      rangeStart: rangeStart?.toISOString() ?? null,
+      rangeEnd: rangeEnd.toISOString(),
+    });
+  }, [filteredSales, rangeEnd, rangeStart, rep, timeRange, vendor]);
 
   const previousSalesRecords = useMemo(() => {
     if (!previousRange) return [] as SalesRecord[];
@@ -474,6 +622,14 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     return [] as Array<{ date: string; revenue: number; profit: number }>;
   }, [monthlyBuckets, sales.length, snapshots]);
 
+  const hasProfitSeries = useMemo(
+    () => trendSeries.some((item) => typeof item.profit === "number"),
+    [trendSeries],
+  );
+
+  const revenueTrendLabel = timeRange === "all" ? "Total Revenue" : "Revenue";
+  const profitTrendLabel = "Total Profit";
+
 
   const filteredHomeRuns = useMemo(() => {
     return homeRuns
@@ -488,16 +644,15 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         if (run.parsedDate && run.parsedDate > rangeEnd) return false;
         return true;
       })
-      .sort((a, b) => b.value - a.value);
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   }, [homeRuns, rangeEnd, rangeStart, rep, vendor]);
 
-  const homeRunTopFive = filteredHomeRuns.slice(0, 5);
+  const homeRunTopTwenty = filteredHomeRuns.slice(0, 20);
 
   return (
     <div className="space-y-10">
       <SectionHeader
         title="Sales Overview"
-        badge="Pipeline"
         actions={<FilterControls vendors={vendorOptions} reps={repOptions} />}
       />
 
@@ -507,37 +662,54 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
           value={formatCurrency(currentRevenue)}
           delta={revenueDelta}
           accent="primary"
+          sideMetrics={revenueSideMetrics}
         />
         <MetricTile
           label={timeRange === "all" ? "Total Profit" : "Profit"}
           value={formatCurrency(currentProfit)}
           delta={profitDelta}
           accent="warning"
+          sideMetrics={profitSideMetrics}
         />
         <MetricTile
           label="Orders"
           value={formatNumber(currentOrders)}
           delta={ordersDelta}
           accent="secondary"
+          sideMetrics={ordersSideMetrics}
         />
         <MetricTile
           label="Margin"
           value={formatPercent(currentMargin)}
           delta={marginDelta}
           accent="success"
+          sideMetrics={marginSideMetrics}
         />
       </div>
 
       <Card>
-        <CardHeader className="items-start">
+        <CardHeader className="items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Monthly Sales Trend</CardTitle>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[rgba(32,71,255,0.85)]" />
+              <span>{revenueTrendLabel}</span>
+            </div>
+            {hasProfitSeries ? (
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-[rgba(15,199,198,0.85)]" />
+                <span>{profitTrendLabel}</span>
+              </div>
+            ) : null}
           </div>
         </CardHeader>
         <TrendArea
           data={trendSeries}
-          revenueLabel={timeRange === "all" ? "Total Revenue" : "Revenue"}
-          profitLabel="Total Profit"
+          revenueLabel={revenueTrendLabel}
+          profitLabel={profitTrendLabel}
+          legendPlacement="none"
         />
       </Card>
 
@@ -631,24 +803,34 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
             <TableRow>
               <TableHeadCell>Invoice</TableHeadCell>
               <TableHeadCell>Vendor</TableHeadCell>
+              <TableHeadCell className="text-right">Revenue</TableHeadCell>
+              <TableHeadCell>Customer</TableHeadCell>
               <TableHeadCell>Rep</TableHeadCell>
-              <TableHeadCell className="text-right">Value</TableHeadCell>
+              <TableHeadCell className="text-right">Profit</TableHeadCell>
+              <TableHeadCell className="text-right">Margin</TableHeadCell>
               <TableHeadCell className="text-right">Closed</TableHeadCell>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {homeRunTopFive.map((record) => (
+            {homeRunTopTwenty.map((record) => (
               <TableRow key={record.id}>
                 <TableCell className="font-medium">{record.invoice}</TableCell>
                 <TableCell>{record.vendor}</TableCell>
-                <TableCell>{record.rep}</TableCell>
                 <TableCell className="text-right">{formatCurrency(record.value)}</TableCell>
+                <TableCell>{record.customer ?? "Unknown"}</TableCell>
+                <TableCell>{record.rep}</TableCell>
+                <TableCell className="text-right">
+                  {typeof record.profit === "number" ? formatCurrency(record.profit) : "—"}
+                </TableCell>
+                <TableCell className="text-right">
+                  {typeof record.margin === "number" ? formatPercent(record.margin) : "—"}
+                </TableCell>
                 <TableCell className="text-right">{record.closedAt}</TableCell>
               </TableRow>
             ))}
-            {!homeRunTopFive.length && (
+            {!homeRunTopTwenty.length && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
                   No home run deals for the selected filters.
                 </TableCell>
               </TableRow>

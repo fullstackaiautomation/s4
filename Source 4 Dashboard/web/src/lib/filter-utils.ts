@@ -1,6 +1,6 @@
 import { TimeRange } from "@/components/providers/dashboard-filters";
 
-const TIME_RANGE_TO_DAYS: Record<Exclude<TimeRange, "all">, number> = {
+const TIME_RANGE_TO_DAYS: Record<Exclude<TimeRange, "all" | "custom">, number> = {
   "last-month": 30,
   "last-7": 7,
   "last-30": 30,
@@ -21,7 +21,11 @@ function subtractDays(anchor: Date, days: number) {
   return result;
 }
 
-export function getRangeBounds(timeRange: TimeRange, candidates: Array<Date | null | undefined>) {
+export function getRangeBounds(
+  timeRange: TimeRange,
+  candidates: Array<Date | null | undefined>,
+  customRange?: { start: Date | null; end: Date | null },
+) {
   const validDates = candidates
     .map((item) => parseDate(item ?? null))
     .filter((item): item is Date => Boolean(item))
@@ -30,8 +34,21 @@ export function getRangeBounds(timeRange: TimeRange, candidates: Array<Date | nu
   if (!validDates.length) {
     const today = new Date();
     today.setHours(23, 59, 59, 999);
+
+    if (timeRange === "custom") {
+      const fallbackEnd = customRange?.end ? new Date(customRange.end) : today;
+      fallbackEnd.setHours(23, 59, 59, 999);
+      const start = customRange?.start ? new Date(customRange.start) : null;
+      if (start) {
+        start.setHours(0, 0, 0, 0);
+      }
+      return {
+        start,
+        end: fallbackEnd,
+      };
+    }
     return {
-      start: timeRange === "all" ? null : subtractDays(today, TIME_RANGE_TO_DAYS[timeRange] ?? 0),
+      start: timeRange === "all" || timeRange === "custom" ? null : subtractDays(today, TIME_RANGE_TO_DAYS[timeRange as Exclude<TimeRange, "all" | "custom">] ?? 0),
       end: today,
     };
   }
@@ -40,11 +57,26 @@ export function getRangeBounds(timeRange: TimeRange, candidates: Array<Date | nu
   const end = new Date(latest);
   end.setHours(23, 59, 59, 999);
 
+  if (timeRange === "custom") {
+    const fallbackEnd = customRange?.end ? new Date(customRange.end) : end;
+    fallbackEnd.setHours(23, 59, 59, 999);
+
+    const start = customRange?.start ? new Date(customRange.start) : null;
+    if (start) {
+      start.setHours(0, 0, 0, 0);
+    }
+
+    return {
+      start,
+      end: fallbackEnd,
+    };
+  }
+
   if (timeRange === "all") {
     return { start: null, end };
   }
 
-  const days = TIME_RANGE_TO_DAYS[timeRange as Exclude<TimeRange, "all">];
+  const days = TIME_RANGE_TO_DAYS[timeRange as Exclude<TimeRange, "all" | "custom">];
   if (!days) {
     return { start: null, end };
   }

@@ -25,7 +25,7 @@ type RepsDashboardClientProps = {
 };
 
 export function RepsDashboardClient({ sales, carts, homeRuns }: RepsDashboardClientProps) {
-  const { timeRange, vendor, rep } = useDashboardFilters();
+  const { timeRange, vendor, rep, customRange } = useDashboardFilters();
 
   const { start: rangeStart, end: rangeEnd } = useMemo(() => {
     const candidateDates: Array<Date | null> = [
@@ -33,8 +33,8 @@ export function RepsDashboardClient({ sales, carts, homeRuns }: RepsDashboardCli
       ...carts.map((cart) => parseDate(cart.date || cart.createdAt)),
       ...homeRuns.map((run) => parseDate(run.closedAtIso || run.closedAt)),
     ];
-    return getRangeBounds(timeRange, candidateDates);
-  }, [carts, homeRuns, sales, timeRange]);
+    return getRangeBounds(timeRange, candidateDates, customRange);
+  }, [customRange, carts, homeRuns, sales, timeRange]);
 
   const filteredSales = useMemo(() => {
     return sales.filter((record) => {
