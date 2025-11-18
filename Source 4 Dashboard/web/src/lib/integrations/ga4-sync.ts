@@ -67,13 +67,31 @@ export class GA4Sync {
       syncConversions = true
     } = options;
 
+    // Convert relative dates to actual dates for storage
+    const resolveDate = (dateStr: string): string => {
+      const today = new Date();
+      if (dateStr === 'today') {
+        return today.toISOString().split('T')[0];
+      } else if (dateStr === 'yesterday') {
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().split('T')[0];
+      } else if (dateStr.endsWith('daysAgo')) {
+        const days = parseInt(dateStr.replace('daysAgo', ''));
+        const pastDate = new Date(today);
+        pastDate.setDate(pastDate.getDate() - days);
+        return pastDate.toISOString().split('T')[0];
+      }
+      return dateStr; // Already in YYYY-MM-DD format
+    };
+
     // Create sync log entry
     const { data: syncLog, error: syncLogError } = await this.supabase
       .from('ga4_sync_log')
       .insert({
         sync_started_at: new Date().toISOString(),
-        date_range_start: dateRange.startDate,
-        date_range_end: dateRange.endDate,
+        date_range_start: resolveDate(dateRange.startDate),
+        date_range_end: resolveDate(dateRange.endDate),
         status: 'running'
       })
       .select()

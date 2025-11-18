@@ -122,24 +122,23 @@ export class GA4Client {
       ],
       metrics: [
         { name: 'screenPageViews' },
-        { name: 'userEngagementDuration' },
-        { name: 'bounceRate' },
-        { name: 'exits' }
+        { name: 'engagementRate' },
+        { name: 'bounceRate' }
       ]
     });
 
     return response.rows?.map(row => {
       const pageviews = parseInt(row.metricValues?.[0].value || '0');
-      const totalDuration = parseFloat(row.metricValues?.[1].value || '0');
+      const engagementRate = parseFloat(row.metricValues?.[1].value || '0');
 
       return {
         date: row.dimensionValues?.[0].value || '',
         page_path: row.dimensionValues?.[1].value || '',
         page_title: row.dimensionValues?.[2].value || '',
         pageviews,
-        avg_time_on_page: pageviews > 0 ? totalDuration / pageviews : 0,
+        avg_time_on_page: 0, // Not available per-page in GA4
         bounce_rate: parseFloat(row.metricValues?.[2].value || '0'),
-        exits: parseInt(row.metricValues?.[3].value || '0')
+        exits: 0 // Simplified - exits not available per-page
       };
     }) || [];
   }

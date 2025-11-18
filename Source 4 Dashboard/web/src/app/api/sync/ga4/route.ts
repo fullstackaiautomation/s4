@@ -8,9 +8,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createGA4Sync } from '@/lib/integrations/ga4-sync';
 
 export async function POST(request: NextRequest) {
+  console.log('[GA4 Sync API] Starting sync...');
   try {
     // Parse request body
     const body = await request.json();
+    console.log('[GA4 Sync API] Request body:', body);
     const {
       fullSync = false,
       dateRange,
@@ -22,6 +24,7 @@ export async function POST(request: NextRequest) {
     } = body;
 
     // Create sync instance
+    console.log('[GA4 Sync API] Creating sync instance...');
     const ga4Sync = createGA4Sync();
 
     if (!ga4Sync) {
@@ -36,6 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Run sync
+    console.log('[GA4 Sync API] Running sync with options:', { fullSync, dateRange, syncTraffic, syncSources, syncPages, syncEcommerce, syncConversions });
     const result = await ga4Sync.sync({
       fullSync,
       dateRange,
@@ -46,6 +50,7 @@ export async function POST(request: NextRequest) {
       syncConversions
     });
 
+    console.log('[GA4 Sync API] Sync result:', result);
     if (result.success) {
       return NextResponse.json(result, { status: 200 });
     } else {
@@ -53,7 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error: any) {
-    console.error('GA4 sync API error:', error);
+    console.error('[GA4 Sync API] Error:', error.message, error.stack);
     return NextResponse.json(
       {
         success: false,
