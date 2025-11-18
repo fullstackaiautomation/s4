@@ -2484,3 +2484,463 @@ export async function getGA4EcommerceTransactions(
     return fallback;
   }
 }
+
+// =====================================================
+// SHOPIFY DATA SERVICE FUNCTIONS
+// =====================================================
+
+export type ShopifyOrder = {
+  orderId: number;
+  orderNumber: string;
+  name: string;
+  email: string;
+  createdAt: string;
+  totalPrice: number;
+  subtotalPrice: number;
+  totalTax: number;
+  totalDiscounts: number;
+  totalShipping: number;
+  financialStatus: string;
+  fulfillmentStatus: string | null;
+  customerFirstName: string | null;
+  customerLastName: string | null;
+  shippingCity: string | null;
+  shippingProvince: string | null;
+  shippingCountry: string | null;
+  lineItemsCount: number;
+};
+
+export type ShopifyDailySales = {
+  date: string;
+  ordersCount: number;
+  totalSales: number;
+  totalTax: number;
+  totalShipping: number;
+  totalDiscounts: number;
+  averageOrderValue: number;
+};
+
+export type ShopifyProduct = {
+  productId: number;
+  title: string;
+  vendor: string;
+  productType: string;
+  status: string;
+  totalInventory: number;
+  variantsCount: number;
+  createdAt: string;
+};
+
+export type ShopifyCustomer = {
+  customerId: number;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  ordersCount: number;
+  totalSpent: number;
+  createdAt: string;
+  defaultCity: string | null;
+  defaultCountry: string | null;
+};
+
+export type ShopifyProductSales = {
+  productId: number;
+  productTitle: string;
+  vendor: string;
+  productType: string;
+  ordersCount: number;
+  unitsSold: number;
+  totalRevenue: number;
+  avgPrice: number;
+};
+
+// Shopify Orders
+export async function getShopifyOrders(
+  dateRange?: { start: string; end: string },
+  limit: number = 1000
+): Promise<ApiResponse<ShopifyOrder[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [] as ShopifyOrder[],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("shopify_orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (dateRange) {
+      query = query.gte("created_at", dateRange.start).lte("created_at", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Supabase error fetching Shopify orders:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Shopify orders: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[Shopify Orders] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: ShopifyOrder[] = data.map((row) => ({
+      orderId: row.order_id,
+      orderNumber: row.order_number ?? "",
+      name: row.name ?? "",
+      email: row.email ?? "",
+      createdAt: row.created_at ?? "",
+      totalPrice: Number(row.total_price ?? 0),
+      subtotalPrice: Number(row.subtotal_price ?? 0),
+      totalTax: Number(row.total_tax ?? 0),
+      totalDiscounts: Number(row.total_discounts ?? 0),
+      totalShipping: Number(row.total_shipping ?? 0),
+      financialStatus: row.financial_status ?? "unknown",
+      fulfillmentStatus: row.fulfillment_status,
+      customerFirstName: row.customer_first_name,
+      customerLastName: row.customer_last_name,
+      shippingCity: row.shipping_address_city,
+      shippingProvince: row.shipping_address_province,
+      shippingCountry: row.shipping_address_country,
+      lineItemsCount: row.line_items_count ?? 0,
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify orders:", error);
+    return fallback;
+  }
+}
+
+// Shopify Daily Sales Aggregation
+export async function getShopifyDailySales(
+  dateRange?: { start: string; end: string }
+): Promise<ApiResponse<ShopifyDailySales[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [] as ShopifyDailySales[],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    // Aggregate orders by date
+    let query = supabase
+      .from("shopify_orders")
+      .select("created_at, total_price, total_tax, total_shipping, total_discounts")
+      .order("created_at", { ascending: true });
+
+    if (dateRange) {
+      query = query.gte("created_at", dateRange.start).lte("created_at", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Supabase error fetching Shopify daily sales:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Shopify daily sales: No data found");
+      return fallback;
+    }
+
+    // Aggregate by date
+    const dailyMap = new Map<string, {
+      ordersCount: number;
+      totalSales: number;
+      totalTax: number;
+      totalShipping: number;
+      totalDiscounts: number;
+    }>();
+
+    for (const row of data) {
+      const date = row.created_at ? row.created_at.split("T")[0] : "";
+      if (!date) continue;
+
+      const existing = dailyMap.get(date) || {
+        ordersCount: 0,
+        totalSales: 0,
+        totalTax: 0,
+        totalShipping: 0,
+        totalDiscounts: 0,
+      };
+
+      existing.ordersCount += 1;
+      existing.totalSales += Number(row.total_price ?? 0);
+      existing.totalTax += Number(row.total_tax ?? 0);
+      existing.totalShipping += Number(row.total_shipping ?? 0);
+      existing.totalDiscounts += Number(row.total_discounts ?? 0);
+
+      dailyMap.set(date, existing);
+    }
+
+    const result: ShopifyDailySales[] = Array.from(dailyMap.entries())
+      .map(([date, stats]) => ({
+        date,
+        ordersCount: stats.ordersCount,
+        totalSales: stats.totalSales,
+        totalTax: stats.totalTax,
+        totalShipping: stats.totalShipping,
+        totalDiscounts: stats.totalDiscounts,
+        averageOrderValue: stats.ordersCount > 0 ? stats.totalSales / stats.ordersCount : 0,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    console.log(`[Shopify Daily Sales] ✅ Aggregated ${result.length} days from Supabase`);
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify daily sales:", error);
+    return fallback;
+  }
+}
+
+// Shopify Products
+export async function getShopifyProducts(
+  limit: number = 1000
+): Promise<ApiResponse<ShopifyProduct[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [] as ShopifyProduct[],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("shopify_products")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn("Supabase error fetching Shopify products:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Shopify products: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[Shopify Products] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: ShopifyProduct[] = data.map((row) => ({
+      productId: row.product_id,
+      title: row.title ?? "",
+      vendor: row.vendor ?? "",
+      productType: row.product_type ?? "",
+      status: row.status ?? "unknown",
+      totalInventory: row.total_inventory ?? 0,
+      variantsCount: row.variants_count ?? 0,
+      createdAt: row.created_at ?? "",
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify products:", error);
+    return fallback;
+  }
+}
+
+// Shopify Customers
+export async function getShopifyCustomers(
+  limit: number = 1000
+): Promise<ApiResponse<ShopifyCustomer[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [] as ShopifyCustomer[],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("shopify_customers")
+      .select("*")
+      .order("total_spent", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn("Supabase error fetching Shopify customers:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Shopify customers: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[Shopify Customers] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: ShopifyCustomer[] = data.map((row) => ({
+      customerId: row.customer_id,
+      email: row.email,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      ordersCount: row.orders_count ?? 0,
+      totalSpent: Number(row.total_spent ?? 0),
+      createdAt: row.created_at ?? "",
+      defaultCity: row.default_city,
+      defaultCountry: row.default_country,
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify customers:", error);
+    return fallback;
+  }
+}
+
+// Shopify Product Sales (from view)
+export async function getShopifyProductSales(
+  limit: number = 100
+): Promise<ApiResponse<ShopifyProductSales[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [] as ShopifyProductSales[],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("shopify_product_sales")
+      .select("*")
+      .order("total_revenue", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.warn("Supabase error fetching Shopify product sales:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("Shopify product sales: No data found in view");
+      return fallback;
+    }
+
+    console.log(`[Shopify Product Sales] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: ShopifyProductSales[] = data.map((row) => ({
+      productId: row.product_id,
+      productTitle: row.product_title ?? "Unknown Product",
+      vendor: row.vendor ?? "",
+      productType: row.product_type ?? "",
+      ordersCount: Number(row.orders_count ?? 0),
+      unitsSold: Number(row.units_sold ?? 0),
+      totalRevenue: Number(row.total_revenue ?? 0),
+      avgPrice: Number(row.avg_price ?? 0),
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify product sales:", error);
+    return fallback;
+  }
+}
+
+// Shopify Summary Stats
+export async function getShopifySummaryStats(): Promise<ApiResponse<{
+  totalOrders: number;
+  totalRevenue: number;
+  totalCustomers: number;
+  totalProducts: number;
+  averageOrderValue: number;
+}> & { refreshedAt: string }> {
+  const fallback = {
+    data: {
+      totalOrders: 0,
+      totalRevenue: 0,
+      totalCustomers: 0,
+      totalProducts: 0,
+      averageOrderValue: 0,
+    },
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    // Get order stats
+    const { data: orderStats, error: orderError } = await supabase
+      .from("shopify_orders")
+      .select("total_price")
+      .eq("financial_status", "paid");
+
+    if (orderError) {
+      console.warn("Supabase error fetching Shopify order stats:", orderError);
+      return fallback;
+    }
+
+    // Get customer count
+    const { count: customerCount, error: customerError } = await supabase
+      .from("shopify_customers")
+      .select("*", { count: "exact", head: true });
+
+    if (customerError) {
+      console.warn("Supabase error fetching Shopify customer count:", customerError);
+    }
+
+    // Get product count
+    const { count: productCount, error: productError } = await supabase
+      .from("shopify_products")
+      .select("*", { count: "exact", head: true });
+
+    if (productError) {
+      console.warn("Supabase error fetching Shopify product count:", productError);
+    }
+
+    const totalOrders = orderStats?.length ?? 0;
+    const totalRevenue = orderStats?.reduce((sum, row) => sum + Number(row.total_price ?? 0), 0) ?? 0;
+    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+    console.log(`[Shopify Summary] ✅ Orders: ${totalOrders}, Revenue: $${totalRevenue.toFixed(2)}`);
+
+    return {
+      data: {
+        totalOrders,
+        totalRevenue,
+        totalCustomers: customerCount ?? 0,
+        totalProducts: productCount ?? 0,
+        averageOrderValue,
+      },
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching Shopify summary stats:", error);
+    return fallback;
+  }
+}

@@ -20,6 +20,7 @@ import {
   Package,
   KeyRound,
   Palette,
+  Store,
   LucideIcon
 } from "lucide-react";
 
@@ -51,6 +52,14 @@ export const NAV_SECTIONS: NavSection[] = [
         status: "active",
         icon: TrendingUp,
         minRole: "employee",
+      },
+      {
+        title: "Shopify Sales",
+        href: "/sales/shopify",
+        status: "active",
+        icon: Store,
+        minRole: "employee",
+        badge: "New",
       },
       {
         title: "Rep Performance",
