@@ -5,7 +5,7 @@
 **Project Name**: `source-4-industries`
 **Team**: `taylors-projects-9942914c` (Taylor's projects)
 
-**Production URL**: https://source-4-industries.vercel.app
+**Production URL**: https://source4.vercel.app
 
 ### Root Directory Configuration
 The Vercel project is configured with:

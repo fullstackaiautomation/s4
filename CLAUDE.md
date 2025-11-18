@@ -77,7 +77,7 @@ Source 4 Industries/
 
 The Source 4 Dashboard is deployed to Vercel and automatically deploys on every push to `main` branch.
 
-**Production URL:** https://source-4-industries.vercel.app
+**Production URL:** https://source4.vercel.app
 
 **Vercel Project Configuration:**
 - Project Name: `source-4-industries`

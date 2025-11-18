@@ -26,7 +26,8 @@
       "Bash(powershell -Command \"Invoke-RestMethod -Method POST -Uri ''http://localhost:3010/api/sync/ga4'' -Body ''{\"\"fullSync\"\":false}'' -ContentType ''application/json''\")",
       "Bash(git reset:*)",
       "Bash(powershell -Command:*)",
-      "Bash(npx next dev:*)"
+      "Bash(npx next dev:*)",
+      "Bash(vercel domains:*)"
     ],
     "deny": [],
     "ask": []
