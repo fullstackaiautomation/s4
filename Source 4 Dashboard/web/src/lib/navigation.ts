@@ -109,6 +109,14 @@ export const NAV_SECTIONS: NavSection[] = [
         minRole: "employee",
       },
       {
+        title: "Google Analytics",
+        href: "/marketing/ga4",
+        status: "active",
+        icon: TrendingUp,
+        minRole: "employee",
+        badge: "New",
+      },
+      {
         title: "Google Ads",
         href: "/marketing/google-ads",
         status: "future",

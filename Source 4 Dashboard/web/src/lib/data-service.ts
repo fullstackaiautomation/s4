@@ -59,6 +59,20 @@ const SALES_DATA_START = new Date(SALES_DATA_START_ISO);
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const DATETIME_WITH_OPTIONAL_TZ_REGEX = /^\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/i;
 
+function parseNumeric(value: unknown): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return 0;
+    const normalised = trimmed.replace(/[$,]/g, "");
+    const parsed = Number(normalised);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  return 0;
+}
+
 function coerceIsoDate(rawDate: string | null, monthValue: string | null) {
   const stats = { source: "fallback" as "raw" | "month" | "fallback" };
 
@@ -162,11 +176,11 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
           date: iso,
           vendor: (row.vendor as string) || "Unknown Vendor",
           rep: (row.rep as string) || "Unknown Rep",
-          invoiceTotal: Number(row.invoice_total ?? row.sales_total ?? 0) || 0,
-          salesTotal: Number(row.sales_total ?? row.invoice_total ?? 0) || 0,
-          orders: Number(row.orders ?? 0) || 0,
-          orderQuantity: Number(row.order_quantity ?? row.orders ?? 0) || 0,
-          profitTotal: Number(row.profit_total ?? 0) || 0,
+          invoiceTotal: parseNumeric(row.invoice_total ?? row.sales_total ?? 0),
+          salesTotal: parseNumeric(row.sales_total ?? row.invoice_total ?? 0),
+          orders: parseNumeric(row.orders ?? 0),
+          orderQuantity: parseNumeric(row.order_quantity ?? row.orders ?? 0),
+          profitTotal: parseNumeric(row.profit_total ?? 0),
         };
       })
       .filter((record) => {
@@ -175,11 +189,31 @@ export async function getSalesRecords(limit?: number): Promise<ApiResponse<Sales
         return !Number.isNaN(parsedDate.getTime()) && parsedDate >= SALES_DATA_START;
       });
 
+    const aggregateTotals = records.reduce(
+      (acc, record) => {
+        acc.revenue += record.invoiceTotal;
+        acc.profit += record.profitTotal ?? 0;
+        acc.orders += record.orders;
+        return acc;
+      },
+      { revenue: 0, profit: 0, orders: 0 },
+    );
+
     if (monthFallbackCount > 0 || defaultFallbackCount > 0) {
       console.warn(
         `[getSalesRecords] Adjusted ${monthFallbackCount} rows using month fallback and ${defaultFallbackCount} rows using default start date`,
       );
     }
+
+    console.log(
+      `[getSalesRecords] totals`,
+      {
+        count: records.length,
+        revenue: aggregateTotals.revenue,
+        profit: aggregateTotals.profit,
+        orders: aggregateTotals.orders,
+      },
+    );
 
     return {
       data: records,
@@ -684,18 +718,25 @@ export async function getSalesSnapshots(): Promise<
   try {
     const supabase = await getSupabaseServerClient();
 
+    // OPTIMIZATION: Only fetch data from the last 12 months to reduce load time
+    // Calculate date 12 months ago
+    const twelveMonthsAgo = new Date();
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+    const startDate = twelveMonthsAgo.toISOString().split('T')[0];
+
     // Supabase enforces a server-side max of 1000 rows per query
-    // We need to fetch ALL rows using pagination
+    // Fetch only last 12 months of data using pagination
     let allData: any[] = [];
     let from = 0;
     const pageSize = 1000;
     let hasMore = true;
+    const maxRows = 10000; // Safety limit to prevent excessive fetching
 
-    while (hasMore) {
+    while (hasMore && allData.length < maxRows) {
       const { data, error } = await supabase
         .from("all_time_sales")
         .select("date, month, sales_total, invoice_total, orders, order_quantity, vendor, rep")
-        .gte("date", SALES_DATA_START_DATE)
+        .gte("date", startDate)
         .order("date", { ascending: true })
         .range(from, from + pageSize - 1);
 
@@ -717,7 +758,7 @@ export async function getSalesSnapshots(): Promise<
       return getFallbackResponse();
     }
 
-    console.log(`[getSalesSnapshots] ✅ Fetched ${allData.length} rows from Supabase using pagination`);
+    console.log(`[getSalesSnapshots] ✅ Fetched ${allData.length} rows from Supabase (last 12 months)`);
 
     type Bucket = {
       sortKey: string;
@@ -1992,5 +2033,454 @@ export async function getSkuAdSpendTopSkus(
       error: error instanceof Error ? error.message : "Unknown error",
       refreshedAt: new Date().toISOString(),
     };
+  }
+}
+
+// =====================================================
+// GA4 ANALYTICS DATA SERVICE FUNCTIONS
+// =====================================================
+
+export type GA4DailyTraffic = {
+  date: string;
+  sessions: number;
+  users: number;
+  newUsers: number;
+  engagedSessions: number;
+  engagementRate: number;
+  bounceRate: number;
+  averageSessionDuration: number;
+  pageviews: number;
+};
+
+export type GA4TrafficSource = {
+  date: string;
+  source: string;
+  medium: string;
+  campaign: string;
+  sessions: number;
+  users: number;
+  newUsers: number;
+  conversions: number;
+  conversionRate: number;
+  revenue: number;
+};
+
+export type GA4PagePerformance = {
+  date: string;
+  pagePath: string;
+  pageTitle: string;
+  pageviews: number;
+  uniquePageviews: number;
+  avgTimeOnPage: number;
+  bounceRate: number;
+  exits: number;
+};
+
+export type GA4Conversion = {
+  date: string;
+  conversionEvent: string;
+  source: string;
+  medium: string;
+  campaign: string;
+  conversions: number;
+  conversionValue: number;
+};
+
+export type GA4EcommerceTransaction = {
+  date: string;
+  transactionId: string;
+  source: string;
+  medium: string;
+  campaign: string;
+  revenue: number;
+  tax: number;
+  shipping: number;
+  itemsPurchased: number;
+};
+
+// GA4 Daily Traffic
+export async function getGA4DailyTraffic(
+  dateRange?: { start: string; end: string }
+): Promise<ApiResponse<GA4DailyTraffic[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [
+      {
+        date: "2025-01-17",
+        sessions: 1250,
+        users: 980,
+        newUsers: 420,
+        engagedSessions: 890,
+        engagementRate: 71.2,
+        bounceRate: 28.8,
+        averageSessionDuration: 185.5,
+        pageviews: 3420,
+      },
+      {
+        date: "2025-01-16",
+        sessions: 1180,
+        users: 920,
+        newUsers: 390,
+        engagedSessions: 850,
+        engagementRate: 72.0,
+        bounceRate: 28.0,
+        averageSessionDuration: 190.2,
+        pageviews: 3210,
+      },
+    ],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("ga4_daily_traffic")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(1000);
+
+    if (dateRange) {
+      query = query.gte("date", dateRange.start).lte("date", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Supabase error fetching GA4 daily traffic:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("GA4 daily traffic: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[GA4 Daily Traffic] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: GA4DailyTraffic[] = data.map((row) => ({
+      date: row.date,
+      sessions: Number(row.sessions ?? 0),
+      users: Number(row.users ?? 0),
+      newUsers: Number(row.new_users ?? 0),
+      engagedSessions: Number(row.engaged_sessions ?? 0),
+      engagementRate: Number(row.engagement_rate ?? 0),
+      bounceRate: Number(row.bounce_rate ?? 0),
+      averageSessionDuration: Number(row.average_session_duration ?? 0),
+      pageviews: Number(row.pageviews ?? 0),
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching GA4 daily traffic:", error);
+    return fallback;
+  }
+}
+
+// GA4 Traffic Sources
+export async function getGA4TrafficSources(
+  dateRange?: { start: string; end: string }
+): Promise<ApiResponse<GA4TrafficSource[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [
+      {
+        date: "2025-01-17",
+        source: "google",
+        medium: "organic",
+        campaign: "(not set)",
+        sessions: 650,
+        users: 520,
+        newUsers: 230,
+        conversions: 42,
+        conversionRate: 6.46,
+        revenue: 8400.0,
+      },
+      {
+        date: "2025-01-17",
+        source: "direct",
+        medium: "(none)",
+        campaign: "(not set)",
+        sessions: 380,
+        users: 290,
+        newUsers: 120,
+        conversions: 28,
+        conversionRate: 7.37,
+        revenue: 5600.0,
+      },
+    ],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("ga4_traffic_sources")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(5000);
+
+    if (dateRange) {
+      query = query.gte("date", dateRange.start).lte("date", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Supabase error fetching GA4 traffic sources:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("GA4 traffic sources: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[GA4 Traffic Sources] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: GA4TrafficSource[] = data.map((row) => ({
+      date: row.date,
+      source: row.source ?? "(not set)",
+      medium: row.medium ?? "(not set)",
+      campaign: row.campaign ?? "(not set)",
+      sessions: Number(row.sessions ?? 0),
+      users: Number(row.users ?? 0),
+      newUsers: Number(row.new_users ?? 0),
+      conversions: Number(row.conversions ?? 0),
+      conversionRate: Number(row.conversion_rate ?? 0),
+      revenue: Number(row.revenue ?? 0),
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching GA4 traffic sources:", error);
+    return fallback;
+  }
+}
+
+// GA4 Page Performance
+export async function getGA4PagePerformance(
+  dateRange?: { start: string; end: string },
+  limit: number = 50
+): Promise<ApiResponse<GA4PagePerformance[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [
+      {
+        date: "2025-01-17",
+        pagePath: "/",
+        pageTitle: "Home",
+        pageviews: 850,
+        uniquePageviews: 620,
+        avgTimeOnPage: 125.5,
+        bounceRate: 32.5,
+        exits: 210,
+      },
+      {
+        date: "2025-01-17",
+        pagePath: "/products",
+        pageTitle: "Products",
+        pageviews: 620,
+        uniquePageviews: 480,
+        avgTimeOnPage: 145.2,
+        bounceRate: 28.3,
+        exits: 180,
+      },
+    ],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("ga4_page_performance")
+      .select("*")
+      .order("pageviews", { ascending: false })
+      .limit(limit);
+
+    if (dateRange) {
+      query = query.gte("date", dateRange.start).lte("date", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error || !data || data.length === 0) {
+      console.warn("Supabase error fetching GA4 page performance:", error);
+      return fallback;
+    }
+
+    const result: GA4PagePerformance[] = data.map((row) => ({
+      date: row.date,
+      pagePath: row.page_path ?? "/",
+      pageTitle: row.page_title ?? "Untitled",
+      pageviews: Number(row.pageviews ?? 0),
+      uniquePageviews: Number(row.unique_pageviews ?? 0),
+      avgTimeOnPage: Number(row.avg_time_on_page ?? 0),
+      bounceRate: Number(row.bounce_rate ?? 0),
+      exits: Number(row.exits ?? 0),
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching GA4 page performance:", error);
+    return fallback;
+  }
+}
+
+// GA4 Conversions
+export async function getGA4Conversions(
+  dateRange?: { start: string; end: string }
+): Promise<ApiResponse<GA4Conversion[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [
+      {
+        date: "2025-01-17",
+        conversionEvent: "purchase",
+        source: "google",
+        medium: "organic",
+        campaign: "(not set)",
+        conversions: 42,
+        conversionValue: 8400.0,
+      },
+      {
+        date: "2025-01-17",
+        conversionEvent: "add_to_cart",
+        source: "google",
+        medium: "organic",
+        campaign: "(not set)",
+        conversions: 125,
+        conversionValue: 0,
+      },
+    ],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("ga4_conversions")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(5000);
+
+    if (dateRange) {
+      query = query.gte("date", dateRange.start).lte("date", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Supabase error fetching GA4 conversions:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("GA4 conversions: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[GA4 Conversions] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: GA4Conversion[] = data.map((row) => ({
+      date: row.date,
+      conversionEvent: row.conversion_event ?? "unknown",
+      source: row.source ?? "(not set)",
+      medium: row.medium ?? "(not set)",
+      campaign: row.campaign ?? "(not set)",
+      conversions: Number(row.conversions ?? 0),
+      conversionValue: Number(row.conversion_value ?? 0),
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching GA4 conversions:", error);
+    return fallback;
+  }
+}
+
+// GA4 E-commerce Transactions
+export async function getGA4EcommerceTransactions(
+  dateRange?: { start: string; end: string }
+): Promise<ApiResponse<GA4EcommerceTransaction[]> & { refreshedAt: string }> {
+  const fallback = {
+    data: [
+      {
+        date: "2025-01-17",
+        transactionId: "T12345",
+        source: "google",
+        medium: "organic",
+        campaign: "(not set)",
+        revenue: 250.0,
+        tax: 20.0,
+        shipping: 15.0,
+        itemsPurchased: 3,
+      },
+    ],
+    source: "sample" as const,
+    refreshedAt: new Date().toISOString(),
+  };
+
+  try {
+    const supabase = await getSupabaseServerClient();
+    let query = supabase
+      .from("ga4_ecommerce_transactions")
+      .select("*")
+      .order("date", { ascending: false })
+      .limit(5000);
+
+    if (dateRange) {
+      query = query.gte("date", dateRange.start).lte("date", dateRange.end);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.warn("Supabase error fetching GA4 e-commerce transactions:", error);
+      return fallback;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn("GA4 e-commerce transactions: No data found in table");
+      return fallback;
+    }
+
+    console.log(`[GA4 E-commerce Transactions] ✅ Fetched ${data.length} rows from Supabase`);
+
+    const result: GA4EcommerceTransaction[] = data.map((row) => ({
+      date: row.date,
+      transactionId: row.transaction_id ?? "unknown",
+      source: row.source ?? "(not set)",
+      medium: row.medium ?? "(not set)",
+      campaign: row.campaign ?? "(not set)",
+      revenue: Number(row.revenue ?? 0),
+      tax: Number(row.tax ?? 0),
+      shipping: Number(row.shipping ?? 0),
+      itemsPurchased: Number(row.items_purchased ?? 0),
+    }));
+
+    return {
+      data: result,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching GA4 e-commerce transactions:", error);
+    return fallback;
   }
 }
