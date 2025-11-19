@@ -47,14 +47,6 @@ export const NAV_SECTIONS: NavSection[] = [
     icon: ShoppingCart,
     items: [
       {
-        title: "Command Center",
-        href: "/dashboards",
-        status: "active",
-        icon: LayoutDashboard,
-        minRole: "employee",
-        badge: "Fast",
-      },
-      {
         title: "Sales Overview",
         href: "/dashboards/sales",
         status: "active",

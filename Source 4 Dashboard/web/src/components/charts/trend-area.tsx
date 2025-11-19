@@ -1,19 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  Line,
+  LabelList,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatCompactCurrency } from "@/lib/utils";
 
 type TrendAreaProps = {
   data: Array<{ date: string; revenue: number; profit?: number }>;
@@ -79,9 +79,33 @@ export function TrendArea({
 
   const hasProfit = useMemo(() => data.some((item) => typeof item.profit === "number"), [data]);
 
+  const [showRevenue, setShowRevenue] = useState(true);
+
+  // Find indices of top 10 bars for current metric
+  const top10Indices = useMemo(() => {
+    const indexed = data.map((item, index) => ({
+      value: showRevenue ? item.revenue : (item.profit ?? 0),
+      index
+    }));
+    indexed.sort((a, b) => b.value - a.value);
+    return new Set(indexed.slice(0, 10).map((item) => item.index));
+  }, [data, showRevenue]);
+
+  // Data with label field for top 10 only
+  const dataWithLabels = useMemo(() => {
+    return data.map((item, index) => ({
+      ...item,
+      valueLabel: top10Indices.has(index)
+        ? (showRevenue ? item.revenue : (item.profit ?? 0))
+        : null,
+    }));
+  }, [data, top10Indices, showRevenue]);
+
   const maxValue = useMemo(() => {
     if (!data.length) return 10000;
-    const max = Math.max(...data.map((item) => Math.max(item.revenue, item.profit ?? 0)));
+    const max = Math.max(...data.map((item) =>
+      showRevenue ? item.revenue : (item.profit ?? 0)
+    ));
 
     // Determine appropriate rounding based on scale
     let roundTo: number;
@@ -94,7 +118,7 @@ export function TrendArea({
     }
 
     return Math.ceil(max / roundTo) * roundTo;
-  }, [data]);
+  }, [data, showRevenue]);
 
   const yAxisTicks = useMemo(() => {
     const tickCount = 8;
@@ -103,65 +127,68 @@ export function TrendArea({
   }, [maxValue]);
 
   return (
-    <div className="relative h-[280px] w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 32, right: 16, left: 0, bottom: 0 }} barGap={6} barCategoryGap="20%">
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" vertical={false} />
-          <XAxis dataKey="date" tickLine={false} axisLine={false} dy={12} tick={{ fontSize: 12, fill: "#64748b" }} />
-          <YAxis
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 12, fill: "#64748b" }}
-            tickFormatter={(value) => formatCurrency(Number(value)).replace("$", "")}
-            width={70}
-            domain={[0, maxValue]}
-            ticks={yAxisTicks}
-          />
-          <Tooltip
-            cursor={{ fill: "rgba(148,163,184,0.08)" }}
-            content={<CustomTooltip revenueLabel={resolvedRevenueLabel} profitLabel={resolvedProfitLabel} />}
-          />
-          <Bar
-            dataKey="revenue"
-            name={resolvedRevenueLabel}
-            fill="rgba(32,71,255,0.85)"
-            radius={[6, 6, 0, 0]}
-            barSize={32}
-          />
-          {hasProfit ? (
-            <Bar
-              dataKey="profit"
-              name={resolvedProfitLabel}
-              fill="rgba(15,199,198,0.85)"
-              radius={[6, 6, 0, 0]}
-              barSize={32}
-            />
-          ) : null}
-          <Line
-            type="monotone"
-            dataKey="revenue"
-            name={`${resolvedRevenueLabel} Trend`}
-            stroke="rgba(32,71,255,1)"
-            strokeWidth={3}
-            dot={{ r: 2.5, strokeWidth: 0 }}
-            activeDot={{ r: 4 }}
-          />
-        </BarChart>
-      </ResponsiveContainer>
-      {legendPlacement === "overlay" ? (
-        <div className="pointer-events-none absolute right-4 top-4 flex items-center gap-4 text-xs font-medium text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-[rgba(32,71,255,0.85)]" />
-            <span>{resolvedRevenueLabel}</span>
-          </div>
-          {hasProfit ? (
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-[rgba(15,199,198,0.85)]" />
-              <span>{resolvedProfitLabel}</span>
-            </div>
-          ) : null}
+    <div className="w-full">
+      {legendPlacement === "overlay" && hasProfit ? (
+        <div className="mb-2 flex items-center gap-2 px-4 text-sm font-medium">
+          <button
+            type="button"
+            onClick={() => setShowRevenue(true)}
+            className={`rounded-md px-3 py-1.5 transition-colors ${
+              showRevenue
+                ? "bg-[rgb(32,71,255)] text-white"
+                : "text-slate-400 hover:text-white hover:bg-slate-700"
+            }`}
+          >
+            {resolvedRevenueLabel}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowRevenue(false)}
+            className={`rounded-md px-3 py-1.5 transition-colors ${
+              !showRevenue
+                ? "bg-[rgb(15,199,198)] text-white"
+                : "text-slate-400 hover:text-white hover:bg-slate-700"
+            }`}
+          >
+            {resolvedProfitLabel}
+          </button>
         </div>
       ) : null}
+      <div className="h-[280px] w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={dataWithLabels} margin={{ top: 32, right: 16, left: 0, bottom: 0 }} barGap={6} barCategoryGap="20%">
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" vertical={false} />
+            <XAxis dataKey="date" tickLine={false} axisLine={false} dy={12} tick={{ fontSize: 12, fill: "#64748b" }} />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tick={{ fontSize: 12, fill: "#64748b" }}
+              tickFormatter={(value) => formatCurrency(Number(value)).replace("$", "")}
+              width={70}
+              domain={[0, maxValue]}
+              ticks={yAxisTicks}
+            />
+            <Tooltip
+              cursor={{ fill: "rgba(148,163,184,0.08)" }}
+              content={<CustomTooltip revenueLabel={resolvedRevenueLabel} profitLabel={resolvedProfitLabel} />}
+            />
+            <Bar
+              dataKey={showRevenue ? "revenue" : "profit"}
+              name={showRevenue ? resolvedRevenueLabel : resolvedProfitLabel}
+              fill={showRevenue ? "rgba(32,71,255,0.85)" : "rgba(15,199,198,0.85)"}
+              radius={[6, 6, 0, 0]}
+              barSize={32}
+            >
+              <LabelList
+                dataKey="valueLabel"
+                position="top"
+                formatter={(value: number | null) => (value ? formatCompactCurrency(value) : "")}
+                style={{ fontSize: 10, fill: "#64748b", fontWeight: 500 }}
+              />
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

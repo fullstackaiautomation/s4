@@ -39,9 +39,7 @@ export default function LandingDashboardClient({ spotlight, sections }: LandingD
     ]);
 
     uniqueHrefs.forEach((href) => {
-      void router.prefetch(href).catch(() => {
-        /* ignore prefetch failures */
-      });
+      router.prefetch(href);
     });
   }, [router, sections, spotlight.href]);
 

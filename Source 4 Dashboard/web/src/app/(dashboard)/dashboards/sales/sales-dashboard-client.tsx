@@ -157,18 +157,16 @@ function subtractDays(date: Date, days: number) {
 }
 
 function monthKey(date: Date) {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 function startOfMonth(date: Date) {
-  const result = new Date(date.getFullYear(), date.getMonth(), 1);
-  result.setHours(0, 0, 0, 0);
+  const result = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
   return result;
 }
 
 function endOfMonth(date: Date) {
-  const result = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  result.setHours(23, 59, 59, 999);
+  const result = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0, 23, 59, 59, 999));
   return result;
 }
 
@@ -227,7 +225,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     entityFilteredSales.forEach((record) => {
       const parsedDate = normalizeDate(record.date);
       if (!parsedDate) return;
-      const year = parsedDate.getFullYear();
+      const year = parsedDate.getUTCFullYear();
       if (!YEAR_SCOPE.includes(year as (typeof YEAR_SCOPE)[number])) return;
 
       const month = monthKey(parsedDate);
@@ -622,11 +620,6 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
     return [] as Array<{ date: string; revenue: number; profit: number }>;
   }, [monthlyBuckets, sales.length, snapshots]);
 
-  const hasProfitSeries = useMemo(
-    () => trendSeries.some((item) => typeof item.profit === "number"),
-    [trendSeries],
-  );
-
   const revenueTrendLabel = timeRange === "all" ? "Total Revenue" : "Revenue";
   const profitTrendLabel = "Total Profit";
 
@@ -650,13 +643,13 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
   const homeRunTopTwenty = filteredHomeRuns.slice(0, 20);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <SectionHeader
         title="Sales Overview"
         actions={<FilterControls vendors={vendorOptions} reps={repOptions} />}
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricTile
           label={timeRange === "all" ? "Total Revenue" : "Revenue"}
           value={formatCurrency(currentRevenue)}
@@ -687,33 +680,16 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         />
       </div>
 
-      <Card>
-        <CardHeader className="items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Monthly Sales Trend</CardTitle>
-          </div>
-          <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-[rgba(32,71,255,0.85)]" />
-              <span>{revenueTrendLabel}</span>
-            </div>
-            {hasProfitSeries ? (
-              <div className="flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-[rgba(15,199,198,0.85)]" />
-                <span>{profitTrendLabel}</span>
-              </div>
-            ) : null}
-          </div>
-        </CardHeader>
-        <TrendArea
-          data={trendSeries}
-          revenueLabel={revenueTrendLabel}
-          profitLabel={profitTrendLabel}
-          legendPlacement="none"
-        />
-      </Card>
+      <div className="grid gap-4 xl:grid-cols-2">
+        <Card className="pt-4">
+          <TrendArea
+            data={trendSeries}
+            revenueLabel={revenueTrendLabel}
+            profitLabel={profitTrendLabel}
+            legendPlacement="overlay"
+          />
+        </Card>
 
-      <div className="grid gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <div>
@@ -751,7 +727,9 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
             </TableBody>
           </Table>
         </Card>
+      </div>
 
+      <div className="grid gap-4 xl:grid-cols-2">
         <Card>
           <CardHeader>
             <div>
