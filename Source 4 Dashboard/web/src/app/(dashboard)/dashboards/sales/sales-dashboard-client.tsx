@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { TrendArea } from "@/components/charts/trend-area";
 import { SectionHeader } from "@/components/section-header";
@@ -10,7 +10,7 @@ import { MetricTile } from "@/components/ui/metric";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
 import { useDashboardFilters } from "@/components/providers/dashboard-filters";
 import type { SalesRecord } from "@/lib/data-service";
-import { formatCurrency, formatNumber, formatPercent } from "@/lib/utils";
+import { formatCurrency, formatNumber, formatPercent, formatRepName } from "@/lib/utils";
 
 type AbandonedCart = {
   id: string;
@@ -184,6 +184,7 @@ function endOfDay(date: Date) {
 
 export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, snapshots }: SalesDashboardClientProps) {
   const { timeRange, vendor, rep, customRange } = useDashboardFilters();
+  const [showVendors, setShowVendors] = useState(true);
 
   const datasetStats = useMemo(() => {
     const totalRevenue = sales.reduce((sum, record) => sum + record.invoiceTotal, 0);
@@ -680,7 +681,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
+      <div className="grid gap-4 xl:grid-cols-[7fr_3fr]">
         <Card className="pt-4">
           <TrendArea
             data={trendSeries}
@@ -690,17 +691,35 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
           />
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>Top Vendors</CardTitle>
-              <CardDescription>Highest performing vendors in the latest period.</CardDescription>
-            </div>
-          </CardHeader>
+        <Card className="h-[700px] overflow-hidden pt-4">
+          <div className="mb-2 flex items-center gap-2 px-4 text-sm font-medium">
+            <button
+              type="button"
+              onClick={() => setShowVendors(true)}
+              className={`rounded-md px-3 py-1.5 transition-colors ${
+                showVendors
+                  ? "bg-[rgb(32,71,255)] text-white"
+                  : "text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              Vendors
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowVendors(false)}
+              className={`rounded-md px-3 py-1.5 transition-colors ${
+                !showVendors
+                  ? "bg-[rgb(32,71,255)] text-white"
+                  : "text-slate-400 hover:text-white hover:bg-slate-700"
+              }`}
+            >
+              Reps
+            </button>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHeadCell>Vendor</TableHeadCell>
+                <TableHeadCell className="w-[180px]">{showVendors ? "Vendor" : "Rep"}</TableHeadCell>
                 <TableHeadCell className="text-right">Orders</TableHeadCell>
                 <TableHeadCell className="text-right">Revenue</TableHeadCell>
                 <TableHeadCell className="text-right">Profit</TableHeadCell>
@@ -708,59 +727,19 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {topVendors.map((item) => (
+              {(showVendors ? topVendors : topReps).map((item) => (
                 <TableRow key={item.name}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="font-medium">{showVendors ? item.name : formatRepName(item.name)}</TableCell>
                   <TableCell className="text-right">{formatNumber(item.orders)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.revenue)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.profit)}</TableCell>
                   <TableCell className="text-right">{formatPercent(item.margin)}</TableCell>
                 </TableRow>
               ))}
-              {!topVendors.length && (
+              {!(showVendors ? topVendors : topReps).length && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
                     No data available for the selected filters.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>Top Reps</CardTitle>
-              <CardDescription>Leading sales reps in the latest period.</CardDescription>
-            </div>
-          </CardHeader>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHeadCell>Rep</TableHeadCell>
-                <TableHeadCell className="text-right">Orders</TableHeadCell>
-                <TableHeadCell className="text-right">Revenue</TableHeadCell>
-                <TableHeadCell className="text-right">Profit</TableHeadCell>
-                <TableHeadCell className="text-right">Margin</TableHeadCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {topReps.map((item) => (
-                <TableRow key={item.name}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell className="text-right">{formatNumber(item.orders)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.profit)}</TableCell>
-                  <TableCell className="text-right">{formatPercent(item.margin)}</TableCell>
-                </TableRow>
-              ))}
-              {!topReps.length && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                    No rep performance data for the selected filters.
                   </TableCell>
                 </TableRow>
               )}
@@ -796,7 +775,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
                 <TableCell>{record.vendor}</TableCell>
                 <TableCell className="text-right">{formatCurrency(record.value)}</TableCell>
                 <TableCell>{record.customer ?? "Unknown"}</TableCell>
-                <TableCell>{record.rep}</TableCell>
+                <TableCell>{formatRepName(record.rep)}</TableCell>
                 <TableCell className="text-right">
                   {typeof record.profit === "number" ? formatCurrency(record.profit) : "—"}
                 </TableCell>
