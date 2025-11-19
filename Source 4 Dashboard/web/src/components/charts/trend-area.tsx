@@ -22,6 +22,7 @@ type TrendAreaProps = {
   primaryLabel?: string;
   secondaryLabel?: string;
   legendPlacement?: "overlay" | "none";
+  height?: number;
 };
 
 type TooltipEntry = {
@@ -73,6 +74,7 @@ export function TrendArea({
   primaryLabel,
   secondaryLabel,
   legendPlacement = "overlay",
+  height = 600,
 }: TrendAreaProps) {
   const resolvedRevenueLabel = revenueLabel ?? primaryLabel ?? "Revenue";
   const resolvedProfitLabel = profitLabel ?? secondaryLabel ?? "Profit";
@@ -154,7 +156,7 @@ export function TrendArea({
           </button>
         </div>
       ) : null}
-      <div className="h-[600px] w-full">
+      <div className="w-full" style={{ height: `${height}px` }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={dataWithLabels} margin={{ top: 32, right: 16, left: 0, bottom: 0 }} barGap={6} barCategoryGap="20%">
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.2)" vertical={false} />

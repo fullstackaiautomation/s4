@@ -32,15 +32,21 @@ export function formatNumber(value: number): string {
 }
 
 export function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(1)}%`;
+  return `${(value * 100).toFixed(0)}%`;
 }
 
 const REP_NAME_MAP: Record<string, string> = {
   "Source4 Integration User": "Web Sales",
   "Source4Caster Integration User": "Caster Web",
-  "Taylor Grasmick": "Taylor",
 };
 
 export function formatRepName(name: string): string {
-  return REP_NAME_MAP[name] ?? name;
+  // Check for special mappings first
+  if (REP_NAME_MAP[name]) {
+    return REP_NAME_MAP[name];
+  }
+
+  // Otherwise, extract first name
+  const firstName = name.trim().split(/\s+/)[0];
+  return firstName;
 }

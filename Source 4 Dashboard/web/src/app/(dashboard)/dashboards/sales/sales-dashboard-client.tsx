@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { TrendArea } from "@/components/charts/trend-area";
 import { SectionHeader } from "@/components/section-header";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { FilterControls } from "@/components/ui/filter-controls";
 import { MetricTile } from "@/components/ui/metric";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
@@ -641,10 +641,77 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
       .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
   }, [homeRuns, rangeEnd, rangeStart, rep, vendor]);
 
-  const homeRunTopTwenty = filteredHomeRuns.slice(0, 20);
+  // Show all home runs, not just top 20
+  const displayedHomeRuns = filteredHomeRuns;
+
+  const formatYear = (dateString: string) => {
+    const date = normalizeDate(dateString);
+    if (!date) return dateString;
+    return String(date.getFullYear());
+  };
+
+  // Home Runs stats - total and breakdowns
+  const totalHomeRuns = useMemo(() => {
+    return {
+      count: filteredHomeRuns.length,
+      revenue: filteredHomeRuns.reduce((sum, run) => sum + run.value, 0),
+    };
+  }, [filteredHomeRuns]);
+
+  const homeRunsOver25K = useMemo(() => {
+    const filtered = filteredHomeRuns.filter(run => run.value >= 25000);
+    return {
+      count: filtered.length,
+      revenue: filtered.reduce((sum, run) => sum + run.value, 0),
+    };
+  }, [filteredHomeRuns]);
+
+  const homeRuns10Kto25K = useMemo(() => {
+    const filtered = filteredHomeRuns.filter(run => run.value >= 10000 && run.value < 25000);
+    return {
+      count: filtered.length,
+      revenue: filtered.reduce((sum, run) => sum + run.value, 0),
+    };
+  }, [filteredHomeRuns]);
+
+  // Top 3 reps by home run count
+  const topRepsByHomeRuns = useMemo(() => {
+    const repStats = new Map<string, { count: number; revenue: number }>();
+    filteredHomeRuns.forEach(run => {
+      const rep = run.rep;
+      const existing = repStats.get(rep) || { count: 0, revenue: 0 };
+      repStats.set(rep, {
+        count: existing.count + 1,
+        revenue: existing.revenue + run.value,
+      });
+    });
+
+    return Array.from(repStats.entries())
+      .map(([rep, stats]) => ({ rep, count: stats.count, revenue: stats.revenue }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+  }, [filteredHomeRuns]);
+
+  // Top 3 vendors by home run count
+  const topVendorsByHomeRuns = useMemo(() => {
+    const vendorStats = new Map<string, { count: number; revenue: number }>();
+    filteredHomeRuns.forEach(run => {
+      const vendor = run.vendor;
+      const existing = vendorStats.get(vendor) || { count: 0, revenue: 0 };
+      vendorStats.set(vendor, {
+        count: existing.count + 1,
+        revenue: existing.revenue + run.value,
+      });
+    });
+
+    return Array.from(vendorStats.entries())
+      .map(([vendor, stats]) => ({ vendor, count: stats.count, revenue: stats.revenue }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+  }, [filteredHomeRuns]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-6 py-4">
       <SectionHeader
         title="Sales Overview"
         actions={<FilterControls vendors={vendorOptions} reps={repOptions} />}
@@ -681,17 +748,18 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         />
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[7fr_3fr]">
-        <Card className="pt-4">
+      <div className="grid gap-4 xl:grid-cols-[6fr_4fr]">
+        <Card className="h-[600px] overflow-hidden pt-4">
           <TrendArea
             data={trendSeries}
             revenueLabel={revenueTrendLabel}
             profitLabel={profitTrendLabel}
             legendPlacement="overlay"
+            height={520}
           />
         </Card>
 
-        <Card className="h-[700px] overflow-hidden pt-4">
+        <Card className="h-[600px] overflow-hidden pt-4">
           <div className="mb-2 flex items-center gap-2 px-4 text-sm font-medium">
             <button
               type="button"
@@ -748,53 +816,170 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Home Runs</CardTitle>
-            <CardDescription>Largest orders and their contributing reps.</CardDescription>
+      <div className="grid gap-4 xl:grid-cols-[6fr_4fr]">
+        <Card className="h-[900px] overflow-hidden flex flex-col">
+          <CardHeader className="flex-shrink-0">
+            <CardTitle className="text-[1.7rem]">Home Run List</CardTitle>
+          </CardHeader>
+          <div className="pb-4 border-b border-slate-700/50">
+            <div className="flex gap-4">
+              <div className="flex flex-col gap-2 rounded-lg bg-slate-800/50 border border-slate-700/50 p-3" style={{ flex: '0 0 28%' }}>
+                <div className="flex items-center gap-3" style={{ height: '28px' }}>
+                  <span className="font-semibold text-yellow-400 min-w-[70px]">Total</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {formatNumber(totalHomeRuns.count)} HRs
+                  </span>
+                  <span className="text-sm font-medium text-slate-200">
+                    {formatCurrency(totalHomeRuns.revenue)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3" style={{ height: '28px' }}>
+                  <span className="font-semibold text-slate-300 min-w-[70px]">25K+</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {formatNumber(homeRunsOver25K.count)} HRs
+                  </span>
+                  <span className="text-sm font-medium text-slate-200">
+                    {formatCurrency(homeRunsOver25K.revenue)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3" style={{ height: '28px' }}>
+                  <span className="font-semibold text-orange-400 min-w-[70px]">10K-25K</span>
+                  <span className="text-sm text-muted-foreground whitespace-nowrap">
+                    {formatNumber(homeRuns10Kto25K.count)} HRs
+                  </span>
+                  <span className="text-sm font-medium text-slate-200">
+                    {formatCurrency(homeRuns10Kto25K.revenue)}
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 rounded-lg bg-slate-800/50 border border-slate-700/50 p-3" style={{ flex: '0 0 32%' }}>
+                {topRepsByHomeRuns.map((item, index) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const colors = ['text-yellow-400', 'text-slate-300', 'text-orange-400'];
+                  return (
+                    <div
+                      key={item.rep}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="text-xl">{medals[index]}</span>
+                      <span className={`font-semibold ${colors[index]} min-w-[60px]`}>
+                        {formatRepName(item.rep)}
+                      </span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        {item.count} {item.count === 1 ? 'HR' : 'HRs'}
+                      </span>
+                      <span className="text-sm font-medium text-slate-200">
+                        {formatCurrency(item.revenue)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-col gap-2 rounded-lg bg-slate-800/50 border border-slate-700/50 p-3" style={{ flex: '1' }}>
+                {topVendorsByHomeRuns.map((item, index) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const colors = ['text-yellow-400', 'text-slate-300', 'text-orange-400'];
+                  return (
+                    <div
+                      key={item.vendor}
+                      className="flex items-center gap-3"
+                    >
+                      <span className="text-xl">{medals[index]}</span>
+                      <span className={`font-semibold ${colors[index]} min-w-[110px]`}>
+                        {item.vendor}
+                      </span>
+                      <span className="text-sm text-muted-foreground whitespace-nowrap">
+                        {item.count} {item.count === 1 ? 'HR' : 'HRs'}
+                      </span>
+                      <span className="text-sm font-medium text-slate-200">
+                        {formatCurrency(item.revenue)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHeadCell>Invoice</TableHeadCell>
-              <TableHeadCell>Vendor</TableHeadCell>
-              <TableHeadCell className="text-right">Revenue</TableHeadCell>
-              <TableHeadCell>Customer</TableHeadCell>
-              <TableHeadCell>Rep</TableHeadCell>
-              <TableHeadCell className="text-right">Profit</TableHeadCell>
-              <TableHeadCell className="text-right">Margin</TableHeadCell>
-              <TableHeadCell className="text-right">Closed</TableHeadCell>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {homeRunTopTwenty.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell className="font-medium">{record.invoice}</TableCell>
-                <TableCell>{record.vendor}</TableCell>
-                <TableCell className="text-right">{formatCurrency(record.value)}</TableCell>
-                <TableCell>{record.customer ?? "Unknown"}</TableCell>
-                <TableCell>{formatRepName(record.rep)}</TableCell>
-                <TableCell className="text-right">
-                  {typeof record.profit === "number" ? formatCurrency(record.profit) : "—"}
-                </TableCell>
-                <TableCell className="text-right">
-                  {typeof record.margin === "number" ? formatPercent(record.margin) : "—"}
-                </TableCell>
-                <TableCell className="text-right">{record.closedAt}</TableCell>
-              </TableRow>
-            ))}
-            {!homeRunTopTwenty.length && (
+          <div className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
-                  No home run deals for the selected filters.
-                </TableCell>
+                <TableHeadCell>Invoice</TableHeadCell>
+                <TableHeadCell>Customer</TableHeadCell>
+                <TableHeadCell>Rep</TableHeadCell>
+                <TableHeadCell>Vendor</TableHeadCell>
+                <TableHeadCell className="text-center">Revenue</TableHeadCell>
+                <TableHeadCell className="text-center">Profit</TableHeadCell>
+                <TableHeadCell className="text-center">Margin</TableHeadCell>
+                <TableHeadCell className="text-center">Year</TableHeadCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHeader>
+            <TableBody>
+              {displayedHomeRuns.map((record) => (
+                <TableRow key={record.id}>
+                  <TableCell className="font-medium">{record.invoice}</TableCell>
+                  <TableCell>{record.customer ?? "Unknown"}</TableCell>
+                  <TableCell>{formatRepName(record.rep)}</TableCell>
+                  <TableCell>{record.vendor}</TableCell>
+                  <TableCell className="text-center">{formatCurrency(record.value)}</TableCell>
+                  <TableCell className="text-center">
+                    {typeof record.profit === "number" ? formatCurrency(record.profit) : "—"}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    {typeof record.margin === "number" ? formatPercent(record.margin) : "—"}
+                  </TableCell>
+                  <TableCell className="text-center">{formatYear(record.closedAtIso || record.date || record.closedAt)}</TableCell>
+                </TableRow>
+              ))}
+              {!displayedHomeRuns.length && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
+                    No home run deals for the selected filters.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          </div>
+        </Card>
+
+        <Card className="h-[900px] overflow-hidden flex flex-col">
+          <CardHeader className="flex-shrink-0">
+            <CardTitle>Monthly Performance</CardTitle>
+          </CardHeader>
+          <div className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHeadCell>Month</TableHeadCell>
+                <TableHeadCell className="text-right">Revenue</TableHeadCell>
+                <TableHeadCell className="text-right">Profit</TableHeadCell>
+                <TableHeadCell className="text-right">Margin</TableHeadCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {monthlyBuckets.slice().reverse().map((bucket) => (
+                <TableRow key={bucket.key}>
+                  <TableCell className="font-medium">{bucket.label}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(bucket.revenue)}</TableCell>
+                  <TableCell className="text-right">{formatCurrency(bucket.profit)}</TableCell>
+                  <TableCell className="text-right">
+                    {bucket.revenue > 0 ? formatPercent(bucket.profit / bucket.revenue) : "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!monthlyBuckets.length && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                    No monthly data available for the selected filters.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
