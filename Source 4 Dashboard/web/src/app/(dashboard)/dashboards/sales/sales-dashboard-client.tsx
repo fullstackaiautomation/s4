@@ -139,7 +139,9 @@ const TIME_RANGE_TO_DAYS: Record<string, number> = {
 };
 
 function formatMonthLabel(date: Date) {
-  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  return `${year}-${month}`;
 }
 
 function normalizeDate(value: string | undefined) {
@@ -760,7 +762,7 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
         </Card>
 
         <Card className="h-[600px] overflow-hidden pt-4">
-          <div className="mb-2 flex items-center gap-2 px-4 text-sm font-medium">
+          <div className="mb-4 flex items-center gap-2 px-4 text-sm font-medium">
             <button
               type="button"
               onClick={() => setShowVendors(true)}
@@ -945,32 +947,90 @@ export default function SalesDashboardClient({ sales, abandonedCarts, homeRuns, 
 
         <Card className="h-[900px] overflow-hidden flex flex-col">
           <CardHeader className="flex-shrink-0">
-            <CardTitle>Monthly Performance</CardTitle>
+            <CardTitle className="text-[1.7rem]">Monthly Performance</CardTitle>
           </CardHeader>
+          <div className="pb-4 border-b border-slate-700/50">
+            <div className="flex gap-4">
+              <div className="flex flex-col gap-2 rounded-lg bg-slate-800/50 border border-slate-700/50 p-3" style={{ flex: '0 0 28%' }}>
+                {[2025, 2024, 2023].map((year) => {
+                  const yearBuckets = monthlyBuckets.filter(bucket => bucket.key.startsWith(String(year)));
+                  const yearRevenue = yearBuckets.reduce((sum, bucket) => sum + bucket.revenue, 0);
+                  const yearProfit = yearBuckets.reduce((sum, bucket) => sum + bucket.profit, 0);
+                  return (
+                    <div
+                      key={year}
+                      className="flex items-center gap-3"
+                      style={{ height: '28px' }}
+                    >
+                      <span className="font-semibold text-yellow-400 min-w-[50px]">{year}</span>
+                      <span className="text-sm font-medium text-slate-200">
+                        {formatCurrency(yearRevenue)}
+                      </span>
+                      <span className="text-sm font-medium text-slate-200">
+                        {formatCurrency(yearProfit)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-col gap-2 rounded-lg bg-slate-800/50 border border-slate-700/50 p-3" style={{ flex: '1' }}>
+                {monthlyBuckets.slice().sort((a, b) => b.revenue - a.revenue).slice(0, 3).map((bucket, index) => {
+                  const medals = ['🥇', '🥈', '🥉'];
+                  const colors = ['text-yellow-400', 'text-slate-300', 'text-orange-400'];
+                  return (
+                    <div
+                      key={bucket.key}
+                      className="flex items-center gap-3"
+                      style={{ height: '28px' }}
+                    >
+                      <span className="text-xl">{medals[index]}</span>
+                      <span className={`font-semibold ${colors[index]} min-w-[80px]`}>
+                        {bucket.label}
+                      </span>
+                      <span className="text-sm font-medium text-slate-200">
+                        {formatCurrency(bucket.revenue)}
+                      </span>
+                      <span className="text-sm font-medium text-slate-200">
+                        {formatCurrency(bucket.profit)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
           <div className="overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
             <Table>
             <TableHeader>
               <TableRow>
-                <TableHeadCell>Month</TableHeadCell>
-                <TableHeadCell className="text-right">Revenue</TableHeadCell>
-                <TableHeadCell className="text-right">Profit</TableHeadCell>
-                <TableHeadCell className="text-right">Margin</TableHeadCell>
+                <TableHeadCell className="text-center">Month</TableHeadCell>
+                <TableHeadCell className="text-center">Revenue</TableHeadCell>
+                <TableHeadCell className="text-center">Profit</TableHeadCell>
+                <TableHeadCell className="text-center">Margin</TableHeadCell>
+                <TableHeadCell className="text-center">Orders</TableHeadCell>
+                <TableHeadCell className="text-center">Rank</TableHeadCell>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {monthlyBuckets.slice().reverse().map((bucket) => (
-                <TableRow key={bucket.key}>
-                  <TableCell className="font-medium">{bucket.label}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(bucket.revenue)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(bucket.profit)}</TableCell>
-                  <TableCell className="text-right">
-                    {bucket.revenue > 0 ? formatPercent(bucket.profit / bucket.revenue) : "—"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {monthlyBuckets.slice().reverse().map((bucket) => {
+                const sortedByRevenue = monthlyBuckets.slice().sort((a, b) => b.revenue - a.revenue);
+                const rank = sortedByRevenue.findIndex(b => b.key === bucket.key) + 1;
+                return (
+                  <TableRow key={bucket.key}>
+                    <TableCell className="font-medium text-center">{bucket.label}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(bucket.revenue)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(bucket.profit)}</TableCell>
+                    <TableCell className="text-center">
+                      {bucket.revenue > 0 ? formatPercent(bucket.profit / bucket.revenue) : "—"}
+                    </TableCell>
+                    <TableCell className="text-center">{formatNumber(bucket.orders)}</TableCell>
+                    <TableCell className="text-center">{rank}</TableCell>
+                  </TableRow>
+                );
+              })}
               {!monthlyBuckets.length && (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground">
                     No monthly data available for the selected filters.
                   </TableCell>
                 </TableRow>
