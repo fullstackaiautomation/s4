@@ -1,0 +1,29 @@
+# Shopify Orders Import Commands
+
+## Navigate to Scripts Directory
+cd "C:\Users\blkw\OneDrive\Documents\Github\Source 4 Industries\Document Storage\Scripts"
+
+## TEST MODE (Recommended First)
+# Import first 10 orders from each file to test
+python import_shopify_orders.py "../Imports/orders_export_1.csv" --test
+python import_shopify_orders.py "../Imports/orders_export_2.csv" --test
+
+## FULL IMPORT - Individual Files
+# Import older data (Feb 2024 - ~2,164 orders)
+python import_shopify_orders.py "../Imports/orders_export_1.csv"
+
+# Import recent data (Nov 2025 - ~1,000 orders)
+python import_shopify_orders.py "../Imports/orders_export_2.csv"
+
+## FULL IMPORT - Both Files Together
+python import_shopify_orders.py "../Imports/orders_export_1.csv" "../Imports/orders_export_2.csv"
+
+## Custom Batch Size (if needed for performance tuning)
+python import_shopify_orders.py "../Imports/orders_export_1.csv" --batch-size 50
+
+## View Logs
+# Check the log file for detailed execution information
+type shopify_orders_import.log
+
+# Or open in notepad
+notepad shopify_orders_import.log
