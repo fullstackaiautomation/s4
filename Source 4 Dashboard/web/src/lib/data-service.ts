@@ -2801,35 +2801,79 @@ export async function getShopifyCustomers(
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data, error } = await supabase
+
+    // Try to get from customers table first
+    const { data: customersData, error: customersError } = await supabase
       .from("shopify_customers")
       .select("*")
       .order("total_spent", { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.warn("Supabase error fetching Shopify customers:", error);
+    if (!customersError && customersData && customersData.length > 0) {
+      console.log(`[Shopify Customers] ✅ Fetched ${customersData.length} rows from shopify_customers table`);
+
+      const result: ShopifyCustomer[] = customersData.map((row) => ({
+        customerId: row.customer_id,
+        email: row.email,
+        firstName: row.first_name,
+        lastName: row.last_name,
+        ordersCount: row.orders_count ?? 0,
+        totalSpent: Number(row.total_spent ?? 0),
+        createdAt: row.created_at ?? "",
+        defaultCity: row.default_city,
+        defaultCountry: row.default_country,
+      }));
+
+      return {
+        data: result,
+        source: "supabase",
+        refreshedAt: new Date().toISOString(),
+      };
+    }
+
+    // Fallback: derive customers from orders table
+    console.warn("Shopify customers table empty, deriving from orders...");
+
+    const { data: ordersData, error: ordersError } = await supabase
+      .from("shopify_orders")
+      .select("customer_email, customer_first_name, customer_last_name, total_price, created_at, shipping_address_city, shipping_address_country")
+      .eq("financial_status", "paid");
+
+    if (ordersError || !ordersData) {
+      console.warn("Could not derive customers from orders:", ordersError);
       return fallback;
     }
 
-    if (!data || data.length === 0) {
-      console.warn("Shopify customers: No data found in table");
-      return fallback;
+    // Aggregate by email
+    const customerMap = new Map<string, ShopifyCustomer>();
+
+    for (const order of ordersData) {
+      const email = order.customer_email || "guest@unknown.com";
+
+      if (customerMap.has(email)) {
+        const customer = customerMap.get(email)!;
+        customer.ordersCount += 1;
+        customer.totalSpent += Number(order.total_price ?? 0);
+      } else {
+        customerMap.set(email, {
+          customerId: 0, // No customer ID from orders
+          email,
+          firstName: order.customer_first_name || null,
+          lastName: order.customer_last_name || null,
+          ordersCount: 1,
+          totalSpent: Number(order.total_price ?? 0),
+          createdAt: order.created_at || "",
+          defaultCity: order.shipping_address_city || null,
+          defaultCountry: order.shipping_address_country || null,
+        });
+      }
     }
 
-    console.log(`[Shopify Customers] ✅ Fetched ${data.length} rows from Supabase`);
+    const result = Array.from(customerMap.values())
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, limit);
 
-    const result: ShopifyCustomer[] = data.map((row) => ({
-      customerId: row.customer_id,
-      email: row.email,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      ordersCount: row.orders_count ?? 0,
-      totalSpent: Number(row.total_spent ?? 0),
-      createdAt: row.created_at ?? "",
-      defaultCity: row.default_city,
-      defaultCountry: row.default_country,
-    }));
+    console.log(`[Shopify Customers] ✅ Derived ${result.length} customers from orders`);
 
     return {
       data: result,
@@ -2854,34 +2898,100 @@ export async function getShopifyProductSales(
 
   try {
     const supabase = await getSupabaseServerClient();
-    const { data, error } = await supabase
+
+    // Try view first
+    const { data: viewData, error: viewError } = await supabase
       .from("shopify_product_sales")
       .select("*")
       .order("total_revenue", { ascending: false })
       .limit(limit);
 
-    if (error) {
-      console.warn("Supabase error fetching Shopify product sales:", error);
+    if (!viewError && viewData && viewData.length > 0) {
+      console.log(`[Shopify Product Sales] ✅ Fetched ${viewData.length} rows from view`);
+
+      const result: ShopifyProductSales[] = viewData.map((row) => ({
+        productId: row.product_id ?? 0,
+        productTitle: row.product_title ?? "Unknown Product",
+        vendor: row.vendor,
+        productType: row.product_type,
+        ordersCount: row.orders_count ?? 0,
+        unitsSold: row.units_sold ?? 0,
+        totalRevenue: Number(row.total_revenue ?? 0),
+        avgPrice: Number(row.avg_price ?? 0),
+      }));
+
+      return {
+        data: result,
+        source: "supabase",
+        refreshedAt: new Date().toISOString(),
+      };
+    }
+
+    // Fallback: derive from line items
+    console.warn("Shopify product_sales view empty, deriving from line items...");
+
+    const { data: lineItemsData, error: lineItemsError } = await supabase
+      .from("shopify_order_line_items")
+      .select("title, sku, vendor, quantity, price, order_id");
+
+    if (lineItemsError || !lineItemsData) {
+      console.warn("Could not derive product sales from line items:", lineItemsError);
       return fallback;
     }
 
-    if (!data || data.length === 0) {
-      console.warn("Shopify product sales: No data found in view");
+    // Get paid orders
+    const { data: paidOrders, error: ordersError } = await supabase
+      .from("shopify_orders")
+      .select("order_id")
+      .eq("financial_status", "paid");
+
+    if (ordersError || !paidOrders) {
+      console.warn("Could not fetch paid orders:", ordersError);
       return fallback;
     }
 
-    console.log(`[Shopify Product Sales] ✅ Fetched ${data.length} rows from Supabase`);
+    const paidOrderIds = new Set(paidOrders.map((o) => o.order_id));
 
-    const result: ShopifyProductSales[] = data.map((row) => ({
-      productId: row.product_id,
-      productTitle: row.product_title ?? "Unknown Product",
-      vendor: row.vendor ?? "",
-      productType: row.product_type ?? "",
-      ordersCount: Number(row.orders_count ?? 0),
-      unitsSold: Number(row.units_sold ?? 0),
-      totalRevenue: Number(row.total_revenue ?? 0),
-      avgPrice: Number(row.avg_price ?? 0),
-    }));
+    // Aggregate by title
+    const productMap = new Map<string, ShopifyProductSales>();
+
+    for (const item of lineItemsData) {
+      // Only count items from paid orders
+      if (!paidOrderIds.has(item.order_id)) continue;
+
+      const key = item.title || "Unknown Product";
+
+      if (productMap.has(key)) {
+        const product = productMap.get(key)!;
+        product.unitsSold += item.quantity || 0;
+        product.totalRevenue += (item.quantity || 0) * Number(item.price || 0);
+        product.ordersCount += 1;
+      } else {
+        productMap.set(key, {
+          productId: 0,
+          productTitle: key,
+          vendor: item.vendor || null,
+          productType: null,
+          ordersCount: 1,
+          unitsSold: item.quantity || 0,
+          totalRevenue: (item.quantity || 0) * Number(item.price || 0),
+          avgPrice: Number(item.price || 0),
+        });
+      }
+    }
+
+    // Calculate average price
+    for (const product of productMap.values()) {
+      if (product.unitsSold > 0) {
+        product.avgPrice = product.totalRevenue / product.unitsSold;
+      }
+    }
+
+    const result = Array.from(productMap.values())
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, limit);
+
+    console.log(`[Shopify Product Sales] ✅ Derived ${result.length} products from line items`);
 
     return {
       data: result,
