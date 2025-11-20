@@ -1712,19 +1712,51 @@ export async function getTopProducts(
 > {
   try {
     const supabase = await getSupabaseServerClient();
-    let query = supabase
-      .from("all_time_sales")
-      .select("sku, description, vendor, product_category, overall_product_category, sales_total, profit_total, orders, roi, sales_each, date")
-      .gte("date", SALES_DATA_START_DATE);
 
-    // Apply date range filter if provided
-    if (dateRange) {
-      query = query
-        .gte("date", dateRange.start)
-        .lte("date", dateRange.end);
+    // Fetch ALL data using pagination to get complete dataset
+    let allData: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+
+    while (hasMore) {
+      let query = supabase
+        .from("all_time_sales")
+        .select("sku, description, vendor, product_category, overall_product_category, order_quantity, sales_total, profit_total, orders, roi, sales_each, date")
+        .gte("date", SALES_DATA_START_DATE)
+        .range(from, from + pageSize - 1);
+
+      // Apply date range filter if provided
+      if (dateRange) {
+        query = query
+          .gte("date", dateRange.start)
+          .lte("date", dateRange.end);
+      }
+
+      const { data: pageData, error } = await query;
+
+      if (error) {
+        console.error("Error fetching page:", error);
+        break;
+      }
+
+      if (!pageData || pageData.length === 0) {
+        hasMore = false;
+      } else {
+        allData = allData.concat(pageData);
+        from += pageSize;
+
+        // If we got less than pageSize, we're done
+        if (pageData.length < pageSize) {
+          hasMore = false;
+        }
+      }
     }
 
-    const { data, error } = await query;
+    const data = allData;
+    const error = null;
+
+    console.log(`[Top Products] Fetched ${data?.length || 0} rows from all_time_sales`);
 
     if (error || !data || data.length === 0) {
       console.warn("Supabase error fetching top products:", error);
@@ -1829,15 +1861,40 @@ export async function getTopProducts(
           roi_sum: 0,
           roi_count: 0,
           price_sum: 0,
-          price_count: 0
+          price_count: 0,
+          // Track revenue by year for trend calculation
+          revenue_2023: 0,
+          revenue_2024: 0,
+          revenue_2025: 0,
+          months_2023: new Set(),
+          months_2024: new Set(),
+          months_2025: new Set()
         });
       }
 
       const agg = aggregated.get(key)!;
-      agg.total_sales += row.sales_total || 0;
+      agg.total_sales += row.order_quantity || 0;
       agg.total_revenue += row.sales_total || 0;
       agg.total_profit += row.profit_total || 0;
       agg.total_orders += row.orders || 0;
+
+      // Track revenue by year
+      if (row.date) {
+        const year = new Date(row.date).getFullYear();
+        const month = new Date(row.date).toISOString().slice(0, 7); // YYYY-MM
+        const revenue = row.sales_total || 0;
+
+        if (year === 2023) {
+          agg.revenue_2023 += revenue;
+          agg.months_2023.add(month);
+        } else if (year === 2024) {
+          agg.revenue_2024 += revenue;
+          agg.months_2024.add(month);
+        } else if (year === 2025) {
+          agg.revenue_2025 += revenue;
+          agg.months_2025.add(month);
+        }
+      }
 
       if (row.roi) {
         agg.roi_sum += row.roi;
@@ -1850,23 +1907,40 @@ export async function getTopProducts(
       }
     });
 
-    // Calculate averages and sort by revenue
+    // Calculate averages and sort by revenue (no limit - show all products)
     const result = Array.from(aggregated.values())
-      .map(item => ({
-        sku: item.sku,
-        description: item.description,
-        vendor: item.vendor,
-        product_category: item.product_category,
-        overall_product_category: item.overall_product_category,
-        total_sales: item.total_sales,
-        total_revenue: item.total_revenue,
-        total_profit: item.total_profit,
-        total_orders: item.total_orders,
-        avg_roi: item.roi_count > 0 ? item.roi_sum / item.roi_count : 0,
-        avg_price: item.price_count > 0 ? item.price_sum / item.price_count : 0
-      }))
+      .map(item => {
+        // Calculate average monthly revenue for each year
+        const avgMonthly2023 = item.months_2023.size > 0 ? item.revenue_2023 / item.months_2023.size : 0;
+        const avgMonthly2024 = item.months_2024.size > 0 ? item.revenue_2024 / item.months_2024.size : 0;
+        const avgMonthly2025 = item.months_2025.size > 0 ? item.revenue_2025 / item.months_2025.size : 0;
+
+        // Calculate baseline (2023 & 2024 combined average)
+        const baseline = (avgMonthly2023 + avgMonthly2024) / 2;
+
+        // Calculate trend: % change from baseline to 2025
+        const trend_2025 = baseline > 0 ? (avgMonthly2025 - baseline) / baseline : null;
+
+        return {
+          sku: item.sku,
+          description: item.description,
+          vendor: item.vendor,
+          product_category: item.product_category,
+          overall_product_category: item.overall_product_category,
+          total_sales: item.total_sales,
+          total_revenue: item.total_revenue,
+          total_profit: item.total_profit,
+          total_orders: item.total_orders,
+          avg_roi: item.total_revenue > 0 ? item.total_profit / item.total_revenue : 0,
+          avg_price: item.price_count > 0 ? item.price_sum / item.price_count : 0,
+          trend_2025: trend_2025
+        };
+      })
       .sort((a, b) => b.total_revenue - a.total_revenue)
-      .slice(0, limit);
+      .slice(0, 100); // Limit to top 100 products
+
+    const totalRevenue = result.reduce((sum, p) => sum + p.total_revenue, 0);
+    console.log(`[Top Products] Showing top ${result.length} products, Total Revenue: $${totalRevenue.toLocaleString()}`);
 
     return {
       data: result,
@@ -3027,47 +3101,70 @@ export async function getShopifySummaryStats(): Promise<ApiResponse<{
   try {
     const supabase = await getSupabaseServerClient();
 
-    // Get order stats
-    const { data: orderStats, error: orderError } = await supabase
+    // Get order count and total revenue using aggregation
+    const { count: totalOrders, error: orderCountError } = await supabase
       .from("shopify_orders")
-      .select("total_price")
+      .select("*", { count: "exact", head: true })
       .eq("financial_status", "paid");
 
-    if (orderError) {
-      console.warn("Supabase error fetching Shopify order stats:", orderError);
-      return fallback;
+    if (orderCountError) {
+      console.warn("Supabase error fetching Shopify order count:", orderCountError);
     }
 
-    // Get customer count
-    const { count: customerCount, error: customerError } = await supabase
-      .from("shopify_customers")
-      .select("*", { count: "exact", head: true });
+    // Get revenue sum - need to fetch all paid orders for aggregation
+    // Use RPC or fetch with higher limit
+    const { data: revenueData, error: revenueError } = await supabase
+      .from("shopify_orders")
+      .select("total_price")
+      .eq("financial_status", "paid")
+      .limit(10000); // Increase limit to cover all orders
 
-    if (customerError) {
-      console.warn("Supabase error fetching Shopify customer count:", customerError);
+    const totalRevenue = revenueData?.reduce((sum, row) => sum + Number(row.total_price ?? 0), 0) ?? 0;
+
+    if (revenueError) {
+      console.warn("Supabase error fetching Shopify revenue:", revenueError);
     }
 
-    // Get product count
-    const { count: productCount, error: productError } = await supabase
-      .from("shopify_products")
-      .select("*", { count: "exact", head: true });
+    // Get unique customer count from orders
+    const { data: customersData, error: customersError } = await supabase
+      .from("shopify_orders")
+      .select("customer_email")
+      .eq("financial_status", "paid")
+      .limit(10000);
 
-    if (productError) {
-      console.warn("Supabase error fetching Shopify product count:", productError);
+    const uniqueCustomers = new Set(
+      customersData?.map((o) => o.customer_email).filter((e) => e) ?? []
+    ).size;
+
+    if (customersError) {
+      console.warn("Supabase error fetching customers for count:", customersError);
     }
 
-    const totalOrders = orderStats?.length ?? 0;
-    const totalRevenue = orderStats?.reduce((sum, row) => sum + Number(row.total_price ?? 0), 0) ?? 0;
-    const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    // Get product count from line items
+    const { data: productsData, error: productsError } = await supabase
+      .from("shopify_order_line_items")
+      .select("title")
+      .limit(15000);
 
-    console.log(`[Shopify Summary] ✅ Orders: ${totalOrders}, Revenue: $${totalRevenue.toFixed(2)}`);
+    const uniqueProducts = new Set(
+      productsData?.map((p) => p.title).filter((t) => t) ?? []
+    ).size;
+
+    if (productsError) {
+      console.warn("Supabase error fetching products for count:", productsError);
+    }
+
+    const finalOrderCount = totalOrders ?? 0;
+    const averageOrderValue = finalOrderCount > 0 ? totalRevenue / finalOrderCount : 0;
+
+    console.log(`[Shopify Summary] ✅ Orders: ${finalOrderCount}, Revenue: $${totalRevenue.toFixed(2)}, Customers: ${uniqueCustomers}, Products: ${uniqueProducts}`);
 
     return {
       data: {
-        totalOrders,
+        totalOrders: finalOrderCount,
         totalRevenue,
-        totalCustomers: customerCount ?? 0,
-        totalProducts: productCount ?? 0,
+        totalCustomers: uniqueCustomers,
+        totalProducts: uniqueProducts,
         averageOrderValue,
       },
       source: "supabase",
