@@ -24,6 +24,32 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Check environment variables explicitly for better error reporting
+    const siteUrl = process.env.GSC_SITE_URL;
+    const credentialsJson = process.env.GSC_CREDENTIALS_JSON || process.env.GA4_CREDENTIALS_JSON;
+
+    if (!siteUrl) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Missing GSC_SITE_URL environment variable',
+          message: 'Please add GSC_SITE_URL to your Vercel environment variables (e.g., sc-domain:example.com)'
+        },
+        { status: 500 }
+      );
+    }
+
+    if (!credentialsJson) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Missing GSC_CREDENTIALS_JSON environment variable',
+          message: 'Please add GSC_CREDENTIALS_JSON (or GA4_CREDENTIALS_JSON) to your Vercel environment variables'
+        },
+        { status: 500 }
+      );
+    }
+
     // Create sync instance
     const gscSync = createGSCSync();
 
@@ -31,7 +57,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'GSC sync not configured. Check environment variables.',
+          error: 'Failed to initialize GSC sync service',
+          message: 'Could not create GSC client. Check credentials format.'
         },
         { status: 500 }
       );

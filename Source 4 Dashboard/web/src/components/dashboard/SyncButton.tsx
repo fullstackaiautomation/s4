@@ -16,10 +16,17 @@ export function SyncButton({ endpoint = '/api/sync/merchant-center' }: { endpoin
                 method: 'POST',
             });
 
-            const data = await response.json();
+            const text = await response.text();
+            let data;
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', text);
+                throw new Error(`Invalid server response (${response.status}): ${text.substring(0, 100)}...`);
+            }
 
             if (!response.ok || !data.success) {
-                throw new Error(data.error || data.errors?.[0] || 'Sync failed');
+                throw new Error(data.error || data.errors?.[0] || `Sync failed (${response.status})`);
             }
 
             router.refresh();
