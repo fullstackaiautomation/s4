@@ -2,15 +2,7 @@
   "installCommand": "npm install --legacy-peer-deps",
   "crons": [
     {
-      "path": "/api/cron/gsc",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/sync/merchant-center",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/sync/ga4",
+      "path": "/api/cron/daily-sync",
       "schedule": "0 6 * * *"
     }
   ]
