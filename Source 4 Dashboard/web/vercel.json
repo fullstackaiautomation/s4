@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/gsc",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/sync/merchant-center",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/sync/ga4",
+      "schedule": "0 6 * * *"
     }
   ]
 }
