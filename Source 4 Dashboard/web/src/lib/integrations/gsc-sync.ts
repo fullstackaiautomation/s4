@@ -182,8 +182,8 @@ export class GSCSync {
         duration,
         errors: errors.length > 0 ? errors : undefined,
         message: errors.length > 0
-          ? `Partially synced ${recordsSynced} records in ${(duration / 1000).toFixed(1)}s with ${errors.length} errors`
-          : `Successfully synced ${recordsSynced} records in ${(duration / 1000).toFixed(1)}s`
+          ? `Partially synced ${recordsSynced} records (${dateRange.startDate} to ${dateRange.endDate}) with ${errors.length} errors`
+          : `Successfully synced ${recordsSynced} records (${dateRange.startDate} to ${dateRange.endDate})`
       };
 
     } catch (error: any) {

@@ -19,11 +19,16 @@ type GSCTopQueriesResult = Awaited<ReturnType<typeof getGSCTopQueries>>;
 type GSCTopPagesResult = Awaited<ReturnType<typeof getGSCTopPages>>;
 type GSCDeviceBreakdownResult = Awaited<ReturnType<typeof getGSCDeviceBreakdown>>;
 
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+
 type GSCDashboardClientProps = {
     overview: GSCOverviewResult;
     topQueries: GSCTopQueriesResult;
     topPages: GSCTopPagesResult;
     deviceBreakdown: GSCDeviceBreakdownResult;
+    currentStartDate?: string;
+    currentEndDate?: string;
 };
 
 export function GSCDashboardClient({
@@ -31,6 +36,8 @@ export function GSCDashboardClient({
     topQueries,
     topPages,
     deviceBreakdown,
+    currentStartDate,
+    currentEndDate,
 }: GSCDashboardClientProps) {
 
     const metrics = overview.data;
@@ -49,6 +56,26 @@ export function GSCDashboardClient({
         };
     };
 
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    const handleRangeChange = (range: string) => {
+        const params = new URLSearchParams(searchParams);
+        const now = new Date();
+        let start = new Date();
+
+        if (range === '7d') start.setDate(now.getDate() - 7);
+        if (range === '30d') start.setDate(now.getDate() - 30);
+        if (range === '90d') start.setDate(now.getDate() - 90);
+        if (range === 'ytd') start = new Date(now.getFullYear(), 0, 1);
+        if (range === '12m') start.setFullYear(now.getFullYear() - 1);
+        if (range === 'all') start = new Date(2020, 0, 1); // Arbitrary old date
+
+        params.set('from', start.toISOString().split('T')[0]);
+        params.set('to', now.toISOString().split('T')[0]);
+        router.push(`?${params.toString()}`);
+    };
+
     return (
         <div className="flex flex-col gap-8 p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -56,6 +83,13 @@ export function GSCDashboardClient({
                     title="Google Search Console"
                     description="Organic search performance and visibility"
                 />
+                <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('7d')}>7D</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('30d')}>30D</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('90d')}>90D</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('ytd')}>YTD</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('12m')}>12M</Button>
+                </div>
             </div>
 
             {/* Overview Metrics */}

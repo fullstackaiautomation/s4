@@ -7,7 +7,11 @@ export const metadata = {
     description: "Organic search performance and visibility",
 };
 
-export default function GSCDashboardPage() {
+export default function GSCDashboardPage({
+    searchParams,
+}: {
+    searchParams: { from?: string; to?: string };
+}) {
     return (
         <div className="flex flex-col gap-6">
             <div className="flex flex-col gap-4 px-6 pt-6">
@@ -16,7 +20,7 @@ export default function GSCDashboardPage() {
                 </div>
                 <GSCBackfill />
             </div>
-            <GSCDashboard />
+            <GSCDashboard startDate={searchParams.from} endDate={searchParams.to} />
         </div>
     );
 }

@@ -6,17 +6,22 @@ import {
     getGSCDeviceBreakdown
 } from "@/lib/data-service";
 
-export default async function GSCDashboard() {
+interface GSCDashboardProps {
+    startDate?: string;
+    endDate?: string;
+}
+
+export default async function GSCDashboard({ startDate, endDate }: GSCDashboardProps) {
     const [
         overview,
         topQueries,
         topPages,
         deviceBreakdown
     ] = await Promise.all([
-        getGSCOverview(),
-        getGSCTopQueries(),
-        getGSCTopPages(),
-        getGSCDeviceBreakdown()
+        getGSCOverview({ startDate, endDate }),
+        getGSCTopQueries({ startDate, endDate }),
+        getGSCTopPages({ startDate, endDate }),
+        getGSCDeviceBreakdown({ startDate, endDate })
     ]);
 
     return (
@@ -25,6 +30,8 @@ export default async function GSCDashboard() {
             topQueries={topQueries}
             topPages={topPages}
             deviceBreakdown={deviceBreakdown}
+            currentStartDate={startDate}
+            currentEndDate={endDate}
         />
     );
 }
