@@ -2662,7 +2662,7 @@ export async function getGA4DailyTraffic(
       .from("ga4_daily_traffic")
       .select("*")
       .order("date", { ascending: false })
-      .limit(1000);
+      .limit(5000);
 
     if (dateRange) {
       query = query.gte("date", dateRange.start).lte("date", dateRange.end);

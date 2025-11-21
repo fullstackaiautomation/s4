@@ -1,6 +1,6 @@
 import GSCDashboard from "@/components/dashboard/gsc-dashboard";
 import { SyncButton } from "@/components/dashboard/SyncButton";
-import { GSCBackfill } from "@/components/dashboard/GSCBackfill";
+
 
 export const metadata = {
     title: "Google Search Console | Source 4 Dashboard",
@@ -18,7 +18,6 @@ export default function GSCDashboardPage({
                 <div className="flex justify-end">
                     <SyncButton endpoint="/api/sync/gsc" />
                 </div>
-                <GSCBackfill />
             </div>
             <GSCDashboard startDate={searchParams.from} endDate={searchParams.to} />
         </div>
