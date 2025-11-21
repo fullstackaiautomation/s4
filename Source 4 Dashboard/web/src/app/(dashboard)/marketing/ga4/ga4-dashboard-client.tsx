@@ -52,7 +52,7 @@ function getDateRange(option: DateRangeOption): { start: Date; end: Date } {
 }
 
 import { SectionHeader } from "@/components/section-header";
-import { TrendArea } from "@/components/charts/trend-area";
+import { TrafficChart } from "@/components/charts/traffic-chart";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MetricTile } from "@/components/ui/metric";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
@@ -256,17 +256,35 @@ export function GA4DashboardClient({
     return Array.from(aggregates.values()).sort((a, b) => b.revenue - a.revenue);
   }, [filteredConversions]);
 
-  // Prepare chart data for daily traffic trend
+  // Prepare chart data for daily revenue trend
   const trafficChartData = useMemo(() => {
+    // Create a map of date -> revenue/conversions
+    const dailyRevenue = new Map<string, number>();
+    const dailyConversions = new Map<string, number>();
+
+    filteredConversions.forEach(row => {
+      const dateKey = row.date; // YYYY-MM-DD
+      const currentRev = dailyRevenue.get(dateKey) || 0;
+      const currentConv = dailyConversions.get(dateKey) || 0;
+
+      dailyRevenue.set(dateKey, currentRev + row.conversionValue);
+      dailyConversions.set(dateKey, currentConv + row.conversions);
+    });
+
     return filteredDailyTraffic
       .slice()
       .reverse()
-      .map((row) => ({
-        date: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        Sessions: row.sessions,
-        Users: row.users,
-      }));
-  }, [filteredDailyTraffic]);
+      .map((row) => {
+        const revenue = dailyRevenue.get(row.date) || 0;
+        const conversions = dailyConversions.get(row.date) || 0;
+
+        return {
+          date: new Date(row.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+          Revenue: revenue,
+          Conversions: conversions,
+        };
+      });
+  }, [filteredDailyTraffic, filteredConversions]);
 
   // Format session duration
   const formatDuration = (seconds: number) => {
@@ -348,15 +366,15 @@ export function GA4DashboardClient({
       {/* Traffic Trend Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Traffic Trend</CardTitle>
-          <CardDescription>Sessions and users over time</CardDescription>
+          <CardTitle>Revenue Trend</CardTitle>
+          <CardDescription>Revenue and conversions over time</CardDescription>
         </CardHeader>
         <div className="p-6" style={{ minHeight: '400px' }}>
-          <TrendArea
+          <TrafficChart
             data={trafficChartData}
             xKey="date"
-            yKeys={["Sessions", "Users"]}
-            colors={["#3b82f6", "#10b981"]}
+            yKeys={["Revenue", "Conversions"]}
+            colors={["#10b981", "#3b82f6"]}
           />
         </div>
       </Card>

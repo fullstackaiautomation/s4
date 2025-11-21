@@ -58,6 +58,7 @@ export function GSCDashboardClient({
 
     const router = useRouter();
     const searchParams = useSearchParams();
+    const activeRange = searchParams.get('range') || '30d';
 
     const handleRangeChange = (range: string) => {
         const params = new URLSearchParams(searchParams);
@@ -99,6 +100,7 @@ export function GSCDashboardClient({
 
         params.set('from', start.toISOString().split('T')[0]);
         params.set('to', end.toISOString().split('T')[0]);
+        params.set('range', range);
         router.push(`?${params.toString()}`);
     };
 
@@ -110,15 +112,15 @@ export function GSCDashboardClient({
                     description="Organic search performance and visibility"
                 />
                 <div className="flex gap-2 flex-wrap justify-end">
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('all')}>All</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('2025')}>2025</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('2024')}>2024</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('2023')}>2023</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('90d')}>90D</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('30d')}>30D</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('7d')}>7D</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('this_month')}>This Month</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('last_month')}>Last Month</Button>
+                    <Button variant={activeRange === 'all' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('all')}>All</Button>
+                    <Button variant={activeRange === '2025' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('2025')}>2025</Button>
+                    <Button variant={activeRange === '2024' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('2024')}>2024</Button>
+                    <Button variant={activeRange === '2023' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('2023')}>2023</Button>
+                    <Button variant={activeRange === '90d' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('90d')}>90D</Button>
+                    <Button variant={activeRange === '30d' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('30d')}>30D</Button>
+                    <Button variant={activeRange === '7d' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('7d')}>7D</Button>
+                    <Button variant={activeRange === 'this_month' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('this_month')}>This Month</Button>
+                    <Button variant={activeRange === 'last_month' ? 'primary' : 'outline'} size="sm" onClick={() => handleRangeChange('last_month')}>Last Month</Button>
                 </div>
             </div>
 

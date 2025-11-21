@@ -48,6 +48,7 @@ const SAMPLE_SALES_RECORDS: SalesRecord[] = [
     salesTotal: 45000,
     orders: 24,
     orderQuantity: 24,
+    profitTotal: 0,
   },
 ];
 
@@ -1164,13 +1165,40 @@ export async function getGSCTopQueries(params?: {
     const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const limit = params?.limit || 20;
 
+    console.log(`[getGSCTopQueries] Fetching for ${startDate} to ${endDate} (Limit: ${limit})`);
+
+    // Try using RPC first
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_gsc_top_queries', {
+      start_date: startDate,
+      end_date: endDate,
+      limit_count: limit
+    });
+
+    if (rpcError) {
+      console.error('[getGSCTopQueries] RPC Error:', rpcError);
+    } else {
+      console.log(`[getGSCTopQueries] RPC Success. Rows: ${rpcData?.length}`);
+    }
+
+    if (!rpcError && rpcData) {
+      return {
+        data: rpcData,
+        source: "supabase",
+      };
+    }
+
+    // Fallback to old method if RPC fails
+    if (rpcError) {
+      console.warn('RPC get_gsc_top_queries failed, falling back to client-side aggregation:', rpcError.message);
+    }
+
     const { data, error } = await supabase
       .from('gsc_search_queries')
       .select('query, clicks, impressions, ctr, position')
       .gte('date', startDate)
       .lte('date', endDate)
       .order('clicks', { ascending: false })
-      .limit(limit);
+      .limit(1000); // Increased limit for better client-side aggregation
 
     if (error) throw error;
 
@@ -1235,13 +1263,32 @@ export async function getGSCTopPages(params?: {
     const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const limit = params?.limit || 20;
 
+    // Try using RPC first
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_gsc_top_pages', {
+      start_date: startDate,
+      end_date: endDate,
+      limit_count: limit
+    });
+
+    if (!rpcError && rpcData) {
+      return {
+        data: rpcData,
+        source: "supabase",
+      };
+    }
+
+    // Fallback to old method if RPC fails
+    if (rpcError) {
+      console.warn('RPC get_gsc_top_pages failed, falling back to client-side aggregation:', rpcError.message);
+    }
+
     const { data, error } = await supabase
       .from('gsc_page_performance')
       .select('page, clicks, impressions, ctr, position')
       .gte('date', startDate)
       .lte('date', endDate)
       .order('clicks', { ascending: false })
-      .limit(limit);
+      .limit(1000); // Increased limit for better client-side aggregation
 
     if (error) throw error;
 
@@ -2165,7 +2212,7 @@ export async function getTopProducts(
           }
         ],
         source: "sample",
-        error: error?.message,
+        error: (error as any)?.message || String(error),
         refreshedAt: new Date().toISOString()
       };
     }
@@ -3379,8 +3426,8 @@ export async function getShopifyProductSales(
         productMap.set(key, {
           productId: 0,
           productTitle: key,
-          vendor: item.vendor || null,
-          productType: null,
+          vendor: item.vendor || "",
+          productType: "",
           ordersCount: 1,
           unitsSold: item.quantity || 0,
           totalRevenue: (item.quantity || 0) * Number(item.price || 0),
