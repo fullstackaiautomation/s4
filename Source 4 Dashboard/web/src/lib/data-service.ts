@@ -1015,6 +1015,337 @@ export async function getOpportunityKeywords(): Promise<
   };
 }
 
+// ============================================================================
+// Google Search Console (GSC) Data Services
+// ============================================================================
+
+/**
+ * Get GSC overview metrics
+ * Returns overall site performance for the specified date range
+ */
+export async function getGSCOverview(params?: {
+  startDate?: string; // YYYY-MM-DD, defaults to 30 days ago
+  endDate?: string;   // YYYY-MM-DD, defaults to today
+}): Promise<
+  ApiResponse<{
+    totalClicks: number;
+    totalImpressions: number;
+    avgCtr: number;
+    avgPosition: number;
+    clicksChange: number;
+    impressionsChange: number;
+    ctrChange: number;
+    positionChange: number;
+  }>
+> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const endDate = params?.endDate || new Date().toISOString().split('T')[0];
+    const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    // Get current period data
+    const { data: currentData, error } = await supabase
+      .from('gsc_site_performance')
+      .select('clicks, impressions, ctr, position')
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (error) throw error;
+
+    if (!currentData || currentData.length === 0) {
+      return {
+        data: {
+          totalClicks: 0,
+          totalImpressions: 0,
+          avgCtr: 0,
+          avgPosition: 0,
+          clicksChange: 0,
+          impressionsChange: 0,
+          ctrChange: 0,
+          positionChange: 0,
+        },
+        source: "supabase",
+        warning: "No GSC data found for this date range"
+      };
+    }
+
+    const totalClicks = currentData.reduce((sum, row) => sum + (row.clicks || 0), 0);
+    const totalImpressions = currentData.reduce((sum, row) => sum + (row.impressions || 0), 0);
+    const avgCtr = currentData.length > 0
+      ? currentData.reduce((sum, row) => sum + (row.ctr || 0), 0) / currentData.length
+      : 0;
+    const avgPosition = currentData.length > 0
+      ? currentData.reduce((sum, row) => sum + (row.position || 0), 0) / currentData.length
+      : 0;
+
+    // Get previous period for comparison
+    const daysDiff = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (24 * 60 * 60 * 1000));
+    const prevStartDate = new Date(new Date(startDate).getTime() - daysDiff * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const prevEndDate = new Date(new Date(startDate).getTime() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const { data: prevData } = await supabase
+      .from('gsc_site_performance')
+      .select('clicks, impressions, ctr, position')
+      .gte('date', prevStartDate)
+      .lte('date', prevEndDate);
+
+    let clicksChange = 0;
+    let impressionsChange = 0;
+    let ctrChange = 0;
+    let positionChange = 0;
+
+    if (prevData && prevData.length > 0) {
+      const prevClicks = prevData.reduce((sum, row) => sum + (row.clicks || 0), 0);
+      const prevImpressions = prevData.reduce((sum, row) => sum + (row.impressions || 0), 0);
+      const prevCtr = prevData.reduce((sum, row) => sum + (row.ctr || 0), 0) / prevData.length;
+      const prevPosition = prevData.reduce((sum, row) => sum + (row.position || 0), 0) / prevData.length;
+
+      clicksChange = prevClicks > 0 ? ((totalClicks - prevClicks) / prevClicks) * 100 : 0;
+      impressionsChange = prevImpressions > 0 ? ((totalImpressions - prevImpressions) / prevImpressions) * 100 : 0;
+      ctrChange = prevCtr > 0 ? ((avgCtr - prevCtr) / prevCtr) * 100 : 0;
+      positionChange = prevPosition > 0 ? ((avgPosition - prevPosition) / prevPosition) * 100 : 0;
+    }
+
+    return {
+      data: {
+        totalClicks,
+        totalImpressions,
+        avgCtr,
+        avgPosition,
+        clicksChange,
+        impressionsChange,
+        ctrChange,
+        positionChange,
+      },
+      source: "supabase",
+    };
+  } catch (error: any) {
+    console.error('Error fetching GSC overview:', error);
+    return {
+      data: {
+        totalClicks: 0,
+        totalImpressions: 0,
+        avgCtr: 0,
+        avgPosition: 0,
+        clicksChange: 0,
+        impressionsChange: 0,
+        ctrChange: 0,
+        positionChange: 0,
+      },
+      source: "sample",
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Get top search queries from GSC
+ */
+export async function getGSCTopQueries(params?: {
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}): Promise<
+  ApiResponse<{
+    query: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }[]>
+> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const endDate = params?.endDate || new Date().toISOString().split('T')[0];
+    const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const limit = params?.limit || 20;
+
+    const { data, error } = await supabase
+      .from('gsc_search_queries')
+      .select('query, clicks, impressions, ctr, position')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('clicks', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    // Aggregate by query (sum clicks/impressions, avg ctr/position)
+    const queryMap = new Map<string, { clicks: number; impressions: number; ctr: number; position: number; count: number }>();
+
+    (data || []).forEach(row => {
+      const existing = queryMap.get(row.query) || { clicks: 0, impressions: 0, ctr: 0, position: 0, count: 0 };
+      queryMap.set(row.query, {
+        clicks: existing.clicks + (row.clicks || 0),
+        impressions: existing.impressions + (row.impressions || 0),
+        ctr: existing.ctr + (row.ctr || 0),
+        position: existing.position + (row.position || 0),
+        count: existing.count + 1,
+      });
+    });
+
+    const aggregatedData = Array.from(queryMap.entries())
+      .map(([query, stats]) => ({
+        query,
+        clicks: stats.clicks,
+        impressions: stats.impressions,
+        ctr: stats.ctr / stats.count,
+        position: stats.position / stats.count,
+      }))
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, limit);
+
+    return {
+      data: aggregatedData,
+      source: "supabase",
+    };
+  } catch (error: any) {
+    console.error('Error fetching GSC top queries:', error);
+    return {
+      data: [],
+      source: "sample",
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Get top pages from GSC
+ */
+export async function getGSCTopPages(params?: {
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+}): Promise<
+  ApiResponse<{
+    page: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }[]>
+> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const endDate = params?.endDate || new Date().toISOString().split('T')[0];
+    const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const limit = params?.limit || 20;
+
+    const { data, error } = await supabase
+      .from('gsc_page_performance')
+      .select('page, clicks, impressions, ctr, position')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('clicks', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+
+    // Aggregate by page
+    const pageMap = new Map<string, { clicks: number; impressions: number; ctr: number; position: number; count: number }>();
+
+    (data || []).forEach(row => {
+      const existing = pageMap.get(row.page) || { clicks: 0, impressions: 0, ctr: 0, position: 0, count: 0 };
+      pageMap.set(row.page, {
+        clicks: existing.clicks + (row.clicks || 0),
+        impressions: existing.impressions + (row.impressions || 0),
+        ctr: existing.ctr + (row.ctr || 0),
+        position: existing.position + (row.position || 0),
+        count: existing.count + 1,
+      });
+    });
+
+    const aggregatedData = Array.from(pageMap.entries())
+      .map(([page, stats]) => ({
+        page,
+        clicks: stats.clicks,
+        impressions: stats.impressions,
+        ctr: stats.ctr / stats.count,
+        position: stats.position / stats.count,
+      }))
+      .sort((a, b) => b.clicks - a.clicks)
+      .slice(0, limit);
+
+    return {
+      data: aggregatedData,
+      source: "supabase",
+    };
+  } catch (error: any) {
+    console.error('Error fetching GSC top pages:', error);
+    return {
+      data: [],
+      source: "sample",
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Get device breakdown from GSC
+ */
+export async function getGSCDeviceBreakdown(params?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<
+  ApiResponse<{
+    device: string;
+    clicks: number;
+    impressions: number;
+    ctr: number;
+    position: number;
+  }[]>
+> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const endDate = params?.endDate || new Date().toISOString().split('T')[0];
+    const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('gsc_device_performance')
+      .select('device, clicks, impressions, ctr, position')
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (error) throw error;
+
+    // Aggregate by device
+    const deviceMap = new Map<string, { clicks: number; impressions: number; ctr: number; position: number; count: number }>();
+
+    (data || []).forEach(row => {
+      const existing = deviceMap.get(row.device) || { clicks: 0, impressions: 0, ctr: 0, position: 0, count: 0 };
+      deviceMap.set(row.device, {
+        clicks: existing.clicks + (row.clicks || 0),
+        impressions: existing.impressions + (row.impressions || 0),
+        ctr: existing.ctr + (row.ctr || 0),
+        position: existing.position + (row.position || 0),
+        count: existing.count + 1,
+      });
+    });
+
+    const aggregatedData = Array.from(deviceMap.entries())
+      .map(([device, stats]) => ({
+        device,
+        clicks: stats.clicks,
+        impressions: stats.impressions,
+        ctr: stats.ctr / stats.count,
+        position: stats.position / stats.count,
+      }))
+      .sort((a, b) => b.clicks - a.clicks);
+
+    return {
+      data: aggregatedData,
+      source: "supabase",
+    };
+  } catch (error: any) {
+    console.error('Error fetching GSC device breakdown:', error);
+    return {
+      data: [],
+      source: "sample",
+      error: error.message,
+    };
+  }
+}
+
 // Ads Performance
 export async function getAdsPerformance(): Promise<
   ApiResponse<
@@ -3173,5 +3504,328 @@ export async function getShopifySummaryStats(): Promise<ApiResponse<{
   } catch (error) {
     console.error("Error fetching Shopify summary stats:", error);
     return fallback;
+  }
+}
+
+// =====================================================
+// SYNC LOGS - Unified view of all integration syncs
+// =====================================================
+
+export type SyncLogEntry = {
+  id: number;
+  integration: string;
+  syncType?: string;
+  status: "running" | "success" | "partial" | "failed";
+  startedAt: string;
+  completedAt: string | null;
+  duration: number | null; // in seconds
+  recordsSynced: number;
+  recordsCreated?: number;
+  recordsUpdated?: number;
+  dateRangeStart?: string;
+  dateRangeEnd?: string;
+  errors?: string[];
+  metadata?: Record<string, any>;
+};
+
+export type SyncLogSummary = {
+  integration: string;
+  lastSyncAt: string | null;
+  lastSyncStatus: "running" | "success" | "partial" | "failed" | "never";
+  totalSyncs: number;
+  successRate: number;
+  totalRecordsSynced: number;
+  avgDuration: number | null; // in seconds
+  lastError: string | null;
+};
+
+/**
+ * Get all sync logs across all integrations
+ */
+export async function getAllSyncLogs(options: {
+  limit?: number;
+  offset?: number;
+  integration?: string;
+  status?: string;
+} = {}): Promise<ApiResponse<SyncLogEntry[]>> {
+  const { limit = 100, offset = 0, integration, status } = options;
+
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    // Fetch from all sync log tables
+    const [asanaLogs, ga4Logs, gscLogs] = await Promise.all([
+      supabase
+        .from("asana_sync_log")
+        .select("*")
+        .order("sync_started_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("ga4_sync_log")
+        .select("*")
+        .order("sync_started_at", { ascending: false })
+        .limit(50),
+      supabase
+        .from("gsc_sync_log")
+        .select("*")
+        .order("sync_started_at", { ascending: false })
+        .limit(50),
+    ]);
+
+    // Combine and normalize all logs
+    const allLogs: SyncLogEntry[] = [];
+
+    // Asana logs
+    if (asanaLogs.data) {
+      asanaLogs.data.forEach((log: any) => {
+        const startedAt = new Date(log.sync_started_at);
+        const completedAt = log.sync_completed_at ? new Date(log.sync_completed_at) : null;
+        const duration = completedAt ? (completedAt.getTime() - startedAt.getTime()) / 1000 : null;
+
+        allLogs.push({
+          id: log.id,
+          integration: "Asana",
+          syncType: log.sync_type,
+          status: log.status,
+          startedAt: log.sync_started_at,
+          completedAt: log.sync_completed_at,
+          duration,
+          recordsSynced: log.records_synced || 0,
+          recordsCreated: log.records_created,
+          recordsUpdated: log.records_updated,
+          errors: log.errors,
+          metadata: log.metadata,
+        });
+      });
+    }
+
+    // GA4 logs
+    if (ga4Logs.data) {
+      ga4Logs.data.forEach((log: any) => {
+        const startedAt = new Date(log.sync_started_at);
+        const completedAt = log.sync_completed_at ? new Date(log.sync_completed_at) : null;
+        const duration = completedAt ? (completedAt.getTime() - startedAt.getTime()) / 1000 : null;
+
+        allLogs.push({
+          id: log.id,
+          integration: "Google Analytics",
+          status: log.status,
+          startedAt: log.sync_started_at,
+          completedAt: log.sync_completed_at,
+          duration,
+          recordsSynced: log.records_synced || 0,
+          dateRangeStart: log.date_range_start,
+          dateRangeEnd: log.date_range_end,
+          errors: log.errors,
+        });
+      });
+    }
+
+    // GSC logs
+    if (gscLogs.data) {
+      gscLogs.data.forEach((log: any) => {
+        const startedAt = new Date(log.sync_started_at);
+        const completedAt = log.sync_completed_at ? new Date(log.sync_completed_at) : null;
+        const duration = completedAt ? (completedAt.getTime() - startedAt.getTime()) / 1000 : null;
+
+        allLogs.push({
+          id: log.id,
+          integration: "Google Search Console",
+          status: log.status,
+          startedAt: log.sync_started_at,
+          completedAt: log.sync_completed_at,
+          duration,
+          recordsSynced: log.records_synced || 0,
+          dateRangeStart: log.date_range_start,
+          dateRangeEnd: log.date_range_end,
+          errors: log.errors ? [log.errors] : undefined,
+        });
+      });
+    }
+
+    // Sort by most recent first
+    allLogs.sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+
+    // Apply filters
+    let filtered = allLogs;
+    if (integration) {
+      filtered = filtered.filter(log => log.integration === integration);
+    }
+    if (status) {
+      filtered = filtered.filter(log => log.status === status);
+    }
+
+    // Apply pagination
+    const paginated = filtered.slice(offset, offset + limit);
+
+    return {
+      data: paginated,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching sync logs:", error);
+    return { data: [] };
+  }
+}
+
+/**
+ * Get sync summary for each integration
+ */
+export async function getSyncLogSummaries(): Promise<ApiResponse<SyncLogSummary[]>> {
+  try {
+    const supabase = await getSupabaseServerClient();
+
+    const summaries: SyncLogSummary[] = [];
+
+    // Asana summary
+    const { data: asanaLogs } = await supabase
+      .from("asana_sync_log")
+      .select("*")
+      .order("sync_started_at", { ascending: false });
+
+    if (asanaLogs && asanaLogs.length > 0) {
+      const lastSync = asanaLogs[0];
+      const successCount = asanaLogs.filter((l: any) => l.status === "success").length;
+      const totalRecords = asanaLogs.reduce((sum: number, l: any) => sum + (l.records_synced || 0), 0);
+      const completedSyncs = asanaLogs.filter((l: any) => l.sync_completed_at);
+      const avgDuration = completedSyncs.length > 0
+        ? completedSyncs.reduce((sum: number, l: any) => {
+            const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
+            return sum + duration;
+          }, 0) / completedSyncs.length
+        : null;
+      const lastError = asanaLogs.find((l: any) => l.errors && l.errors.length > 0)?.errors?.[0] || null;
+
+      summaries.push({
+        integration: "Asana",
+        lastSyncAt: lastSync.sync_completed_at || lastSync.sync_started_at,
+        lastSyncStatus: lastSync.status,
+        totalSyncs: asanaLogs.length,
+        successRate: (successCount / asanaLogs.length) * 100,
+        totalRecordsSynced: totalRecords,
+        avgDuration,
+        lastError,
+      });
+    } else {
+      summaries.push({
+        integration: "Asana",
+        lastSyncAt: null,
+        lastSyncStatus: "never",
+        totalSyncs: 0,
+        successRate: 0,
+        totalRecordsSynced: 0,
+        avgDuration: null,
+        lastError: null,
+      });
+    }
+
+    // GA4 summary
+    const { data: ga4Logs } = await supabase
+      .from("ga4_sync_log")
+      .select("*")
+      .order("sync_started_at", { ascending: false });
+
+    if (ga4Logs && ga4Logs.length > 0) {
+      const lastSync = ga4Logs[0];
+      const successCount = ga4Logs.filter((l: any) => l.status === "success").length;
+      const totalRecords = ga4Logs.reduce((sum: number, l: any) => sum + (l.records_synced || 0), 0);
+      const completedSyncs = ga4Logs.filter((l: any) => l.sync_completed_at);
+      const avgDuration = completedSyncs.length > 0
+        ? completedSyncs.reduce((sum: number, l: any) => {
+            const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
+            return sum + duration;
+          }, 0) / completedSyncs.length
+        : null;
+      const lastError = ga4Logs.find((l: any) => l.errors && l.errors.length > 0)?.errors?.[0] || null;
+
+      summaries.push({
+        integration: "Google Analytics",
+        lastSyncAt: lastSync.sync_completed_at || lastSync.sync_started_at,
+        lastSyncStatus: lastSync.status,
+        totalSyncs: ga4Logs.length,
+        successRate: (successCount / ga4Logs.length) * 100,
+        totalRecordsSynced: totalRecords,
+        avgDuration,
+        lastError,
+      });
+    } else {
+      summaries.push({
+        integration: "Google Analytics",
+        lastSyncAt: null,
+        lastSyncStatus: "never",
+        totalSyncs: 0,
+        successRate: 0,
+        totalRecordsSynced: 0,
+        avgDuration: null,
+        lastError: null,
+      });
+    }
+
+    // GSC summary
+    const { data: gscLogs } = await supabase
+      .from("gsc_sync_log")
+      .select("*")
+      .order("sync_started_at", { ascending: false });
+
+    if (gscLogs && gscLogs.length > 0) {
+      const lastSync = gscLogs[0];
+      const successCount = gscLogs.filter((l: any) => l.status === "success").length;
+      const totalRecords = gscLogs.reduce((sum: number, l: any) => sum + (l.records_synced || 0), 0);
+      const completedSyncs = gscLogs.filter((l: any) => l.sync_completed_at);
+      const avgDuration = completedSyncs.length > 0
+        ? completedSyncs.reduce((sum: number, l: any) => {
+            const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
+            return sum + duration;
+          }, 0) / completedSyncs.length
+        : null;
+      const lastError = gscLogs.find((l: any) => l.errors)?.errors || null;
+
+      summaries.push({
+        integration: "Google Search Console",
+        lastSyncAt: lastSync.sync_completed_at || lastSync.sync_started_at,
+        lastSyncStatus: lastSync.status,
+        totalSyncs: gscLogs.length,
+        successRate: (successCount / gscLogs.length) * 100,
+        totalRecordsSynced: totalRecords,
+        avgDuration,
+        lastError,
+      });
+    } else {
+      summaries.push({
+        integration: "Google Search Console",
+        lastSyncAt: null,
+        lastSyncStatus: "never",
+        totalSyncs: 0,
+        successRate: 0,
+        totalRecordsSynced: 0,
+        avgDuration: null,
+        lastError: null,
+      });
+    }
+
+    // Add placeholder summaries for integrations without sync logs yet
+    const placeholderIntegrations = ["Shopify", "Klaviyo", "Attentive", "Google Merchant Center"];
+    placeholderIntegrations.forEach(name => {
+      summaries.push({
+        integration: name,
+        lastSyncAt: null,
+        lastSyncStatus: "never",
+        totalSyncs: 0,
+        successRate: 0,
+        totalRecordsSynced: 0,
+        avgDuration: null,
+        lastError: null,
+      });
+    });
+
+    return {
+      data: summaries,
+      source: "supabase",
+      refreshedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Error fetching sync summaries:", error);
+    return { data: [] };
   }
 }

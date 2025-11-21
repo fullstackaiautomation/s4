@@ -3,42 +3,55 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { MetricTile } from "@/components/ui/metric";
 import { InlineAlert } from "@/components/ui/inline-alert";
 import { Table, TableBody, TableCell, TableHeadCell, TableHeader, TableRow } from "@/components/ui/table";
-import { getBlogInsights, getOpportunityKeywords } from "@/lib/data-service";
+import { getGSCOverview, getGSCTopQueries, getGSCTopPages, getGSCDeviceBreakdown } from "@/lib/data-service";
 import { formatNumber, formatPercent } from "@/lib/utils";
 
 export default async function SeoPage() {
-  const [keywordsResult, blogResult] = await Promise.all([getOpportunityKeywords(), getBlogInsights()]);
+  // Fetch GSC data for last 30 days
+  const [overviewResult, queriesResult, pagesResult, devicesResult] = await Promise.all([
+    getGSCOverview(),
+    getGSCTopQueries({ limit: 20 }),
+    getGSCTopPages({ limit: 15 }),
+    getGSCDeviceBreakdown()
+  ]);
 
-  const { data: keywords, warning: keywordsWarning, source: keywordsSource } = keywordsResult;
-  const { data: blogInsights, warning: blogWarning, source: blogSource } = blogResult;
-
-  const totalKeywords = keywords.length;
-  const averageCurrentRank = totalKeywords
-    ? keywords.reduce((sum, keyword) => sum + keyword.currentRank, 0) / totalKeywords
-    : 0;
-  const averageTargetRank = totalKeywords
-    ? keywords.reduce((sum, keyword) => sum + keyword.targetRank, 0) / totalKeywords
-    : 0;
-  const averageRankDelta = averageCurrentRank - averageTargetRank;
-  const highestVolumeKeyword = keywords.slice().sort((a, b) => b.searchVolume - a.searchVolume)[0];
-  const totalSessions = blogInsights.reduce((sum, post) => sum + post.sessions, 0);
+  const { data: overview, warning: overviewWarning, source: overviewSource } = overviewResult;
+  const { data: topQueries, warning: queriesWarning, source: queriesSource } = queriesResult;
+  const { data: topPages, warning: pagesWarning, source: pagesSource } = pagesResult;
+  const { data: devices, warning: devicesWarning, source: devicesSource } = devicesResult;
 
   const alerts: { key: string; message: string; variant: "info" | "warning" }[] = [];
-  if (keywordsSource === "sample" || blogSource === "sample") {
-    alerts.push({ key: "source", message: "Displaying sample SEO data until live integrations are connected.", variant: "info" });
+
+  if (overviewSource === "sample" || queriesSource === "sample" || pagesSource === "sample") {
+    alerts.push({
+      key: "source",
+      message: "Google Search Console data is loading. Displaying limited data until sync completes.",
+      variant: "info"
+    });
   }
-  if (keywordsWarning) {
-    alerts.push({ key: "keywords", message: keywordsWarning, variant: "warning" });
+
+  if (overviewWarning) {
+    alerts.push({ key: "overview", message: overviewWarning, variant: "warning" });
   }
-  if (blogWarning) {
-    alerts.push({ key: "blog", message: blogWarning, variant: "warning" });
+  if (queriesWarning) {
+    alerts.push({ key: "queries", message: queriesWarning, variant: "warning" });
   }
+  if (pagesWarning) {
+    alerts.push({ key: "pages", message: pagesWarning, variant: "warning" });
+  }
+
+  const topQuery = topQueries[0];
+  const topPage = topPages[0];
+  const mobileDevice = devices.find(d => d.device === 'MOBILE');
+  const mobileClickShare = mobileDevice && overview.totalClicks > 0
+    ? (mobileDevice.clicks / overview.totalClicks) * 100
+    : 0;
 
   return (
     <div className="space-y-10">
       <SectionHeader
         title="SEO Performance"
-        description="Monitor organic search momentum, prioritize opportunity keywords, and align content backlog with growth goals."
+        description="Real-time organic search performance from Google Search Console. Monitor clicks, impressions, rankings, and device trends."
         badge="Marketing"
       />
 
@@ -52,27 +65,39 @@ export default async function SeoPage() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricTile
-          label="Opportunity Keywords"
-          value={formatNumber(totalKeywords)}
-          delta={{ value: "In focus backlog", direction: totalKeywords > 0 ? "up" : "flat" }}
+          label="Total Clicks (30d)"
+          value={formatNumber(overview.totalClicks)}
+          delta={{
+            value: `${overview.clicksChange >= 0 ? '+' : ''}${overview.clicksChange.toFixed(1)}% vs prior period`,
+            direction: overview.clicksChange >= 0 ? "up" : "down"
+          }}
           accent="primary"
         />
         <MetricTile
-          label="Avg Rank → Target"
-          value={`#${averageCurrentRank.toFixed(1)} → #${averageTargetRank.toFixed(1)}`}
-          delta={{ value: `${averageRankDelta >= 0 ? "↓" : "↑"} ${(Math.abs(averageRankDelta)).toFixed(1)} positions remaining`, direction: averageRankDelta <= 0 ? "up" : "down" }}
+          label="Total Impressions (30d)"
+          value={formatNumber(overview.totalImpressions)}
+          delta={{
+            value: `${overview.impressionsChange >= 0 ? '+' : ''}${overview.impressionsChange.toFixed(1)}% vs prior period`,
+            direction: overview.impressionsChange >= 0 ? "up" : "down"
+          }}
           accent="secondary"
         />
         <MetricTile
-          label="Top Volume Keyword"
-          value={highestVolumeKeyword ? highestVolumeKeyword.keyword : "--"}
-          delta={{ value: highestVolumeKeyword ? `${formatNumber(highestVolumeKeyword.searchVolume)} monthly searches` : "Add backlog", direction: highestVolumeKeyword ? "up" : "flat" }}
+          label="Avg Click-Through Rate"
+          value={formatPercent(overview.avgCtr)}
+          delta={{
+            value: `${overview.ctrChange >= 0 ? '+' : ''}${overview.ctrChange.toFixed(1)}% vs prior period`,
+            direction: overview.ctrChange >= 0 ? "up" : "down"
+          }}
           accent="success"
         />
         <MetricTile
-          label="Organic Sessions (Top Posts)"
-          value={formatNumber(totalSessions)}
-          delta={{ value: "Last 90 days", direction: "flat" }}
+          label="Avg Position"
+          value={`#${overview.avgPosition.toFixed(1)}`}
+          delta={{
+            value: `${overview.positionChange <= 0 ? 'Better' : 'Worse'} vs prior period`,
+            direction: overview.positionChange <= 0 ? "up" : "down"
+          }}
           accent="warning"
         />
       </div>
@@ -80,72 +105,135 @@ export default async function SeoPage() {
       <Card>
         <CardHeader>
           <div>
-            <CardTitle>SEO Opportunity Keywords</CardTitle>
-            <CardDescription>Target keywords where ranking gains unlock the largest traffic lift.</CardDescription>
+            <CardTitle>Top Search Queries</CardTitle>
+            <CardDescription>Keywords driving the most organic clicks to your site (last 30 days).</CardDescription>
           </div>
         </CardHeader>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHeadCell>Keyword</TableHeadCell>
-              <TableHeadCell className="text-right">Search Volume</TableHeadCell>
-              <TableHeadCell className="text-right">Current Rank</TableHeadCell>
-              <TableHeadCell className="text-right">Target Rank</TableHeadCell>
-              <TableHeadCell className="text-right">Difficulty</TableHeadCell>
-              <TableHeadCell>Recommended Action</TableHeadCell>
+              <TableHeadCell>Query</TableHeadCell>
+              <TableHeadCell className="text-right">Clicks</TableHeadCell>
+              <TableHeadCell className="text-right">Impressions</TableHeadCell>
+              <TableHeadCell className="text-right">CTR</TableHeadCell>
+              <TableHeadCell className="text-right">Avg Position</TableHeadCell>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {keywords.map((keyword) => (
-              <TableRow key={keyword.keyword}>
-                <TableCell className="font-medium capitalize">{keyword.keyword}</TableCell>
-                <TableCell className="text-right">{formatNumber(keyword.searchVolume)}</TableCell>
-                <TableCell className="text-right">#{keyword.currentRank}</TableCell>
-                <TableCell className="text-right">#{keyword.targetRank}</TableCell>
-                <TableCell className="text-right">{formatPercent(keyword.difficulty / 100)}</TableCell>
-                <TableCell>{keyword.suggestedAction}</TableCell>
+            {topQueries.length > 0 ? (
+              topQueries.map((query, idx) => (
+                <TableRow key={`${query.query}-${idx}`}>
+                  <TableCell className="font-medium">{query.query}</TableCell>
+                  <TableCell className="text-right">{formatNumber(query.clicks)}</TableCell>
+                  <TableCell className="text-right">{formatNumber(query.impressions)}</TableCell>
+                  <TableCell className="text-right">{formatPercent(query.ctr)}</TableCell>
+                  <TableCell className="text-right">#{query.position.toFixed(1)}</TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  No search query data available. Waiting for GSC sync to complete.
+                </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Content Performance & Gaps</CardTitle>
-            <CardDescription>Review high-performing posts and pair them with next best content ideas.</CardDescription>
-          </div>
-        </CardHeader>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHeadCell>Post</TableHeadCell>
-              <TableHeadCell>Published</TableHeadCell>
-              <TableHeadCell className="text-right">Sessions</TableHeadCell>
-              <TableHeadCell className="text-right">Backlinks</TableHeadCell>
-              <TableHeadCell>Top Keyword</TableHeadCell>
-              <TableHeadCell>Suggested Topic</TableHeadCell>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {blogInsights.map((post) => (
-              <TableRow key={post.slug}>
-                <TableCell className="font-medium">
-                  <a href={post.url} target="_blank" rel="noreferrer" className="text-primary underline decoration-primary/40 hover:decoration-primary">
-                    {post.title}
-                  </a>
-                </TableCell>
-                <TableCell>{new Date(post.publishedAt).toLocaleDateString()}</TableCell>
-                <TableCell className="text-right">{formatNumber(post.sessions)}</TableCell>
-                <TableCell className="text-right">{formatNumber(post.backlinks)}</TableCell>
-                <TableCell className="capitalize">{post.topKeyword}</TableCell>
-                <TableCell>{post.suggestedTopic ?? "--"}</TableCell>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Top Pages</CardTitle>
+              <CardDescription>URLs with the most organic traffic (last 30 days).</CardDescription>
+            </div>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHeadCell>Page</TableHeadCell>
+                <TableHeadCell className="text-right">Clicks</TableHeadCell>
+                <TableHeadCell className="text-right">CTR</TableHeadCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+            </TableHeader>
+            <TableBody>
+              {topPages.length > 0 ? (
+                topPages.map((page, idx) => {
+                  const url = new URL(page.page);
+                  const displayPath = url.pathname === '/' ? 'Homepage' : url.pathname;
+
+                  return (
+                    <TableRow key={`${page.page}-${idx}`}>
+                      <TableCell className="font-medium max-w-xs truncate" title={page.page}>
+                        <a
+                          href={page.page}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary underline decoration-primary/40 hover:decoration-primary"
+                        >
+                          {displayPath}
+                        </a>
+                      </TableCell>
+                      <TableCell className="text-right">{formatNumber(page.clicks)}</TableCell>
+                      <TableCell className="text-right">{formatPercent(page.ctr)}</TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                    No page data available yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Device Breakdown</CardTitle>
+              <CardDescription>Traffic distribution by device type (last 30 days).</CardDescription>
+            </div>
+          </CardHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHeadCell>Device</TableHeadCell>
+                <TableHeadCell className="text-right">Clicks</TableHeadCell>
+                <TableHeadCell className="text-right">Share</TableHeadCell>
+                <TableHeadCell className="text-right">CTR</TableHeadCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {devices.length > 0 ? (
+                devices.map((device, idx) => {
+                  const share = overview.totalClicks > 0
+                    ? (device.clicks / overview.totalClicks) * 100
+                    : 0;
+
+                  return (
+                    <TableRow key={`${device.device}-${idx}`}>
+                      <TableCell className="font-medium capitalize">{device.device.toLowerCase()}</TableCell>
+                      <TableCell className="text-right">{formatNumber(device.clicks)}</TableCell>
+                      <TableCell className="text-right">{formatPercent(share / 100)}</TableCell>
+                      <TableCell className="text-right">{formatPercent(device.ctr)}</TableCell>
+                    </TableRow>
+                  );
+                })
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    No device data available yet.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
     </div>
   );
 }
