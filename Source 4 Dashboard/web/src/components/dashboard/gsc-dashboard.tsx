@@ -3,7 +3,8 @@ import {
     getGSCOverview,
     getGSCTopQueries,
     getGSCTopPages,
-    getGSCDeviceBreakdown
+    getGSCDeviceBreakdown,
+    getGSCDailyPerformance
 } from "@/lib/data-service";
 
 interface GSCDashboardProps {
@@ -16,12 +17,14 @@ export default async function GSCDashboard({ startDate, endDate }: GSCDashboardP
         overview,
         topQueries,
         topPages,
-        deviceBreakdown
+        deviceBreakdown,
+        dailyPerformance
     ] = await Promise.all([
         getGSCOverview({ startDate, endDate }),
         getGSCTopQueries({ startDate, endDate }),
         getGSCTopPages({ startDate, endDate }),
-        getGSCDeviceBreakdown({ startDate, endDate })
+        getGSCDeviceBreakdown({ startDate, endDate }),
+        getGSCDailyPerformance({ startDate, endDate })
     ]);
 
     return (
@@ -30,6 +33,7 @@ export default async function GSCDashboard({ startDate, endDate }: GSCDashboardP
             topQueries={topQueries}
             topPages={topPages}
             deviceBreakdown={deviceBreakdown}
+            dailyPerformance={dailyPerformance}
             currentStartDate={startDate}
             currentEndDate={endDate}
         />

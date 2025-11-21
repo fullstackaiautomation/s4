@@ -11,22 +11,35 @@ import type {
     getGSCOverview,
     getGSCTopQueries,
     getGSCTopPages,
-    getGSCDeviceBreakdown
+    getGSCDeviceBreakdown,
+    getGSCDailyPerformance
 } from "@/lib/data-service";
 
 type GSCOverviewResult = Awaited<ReturnType<typeof getGSCOverview>>;
 type GSCTopQueriesResult = Awaited<ReturnType<typeof getGSCTopQueries>>;
 type GSCTopPagesResult = Awaited<ReturnType<typeof getGSCTopPages>>;
 type GSCDeviceBreakdownResult = Awaited<ReturnType<typeof getGSCDeviceBreakdown>>;
+type GSCDailyPerformanceResult = Awaited<ReturnType<typeof getGSCDailyPerformance>>;
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import {
+    AreaChart,
+    Area,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    Legend
+} from "recharts";
 
 type GSCDashboardClientProps = {
     overview: GSCOverviewResult;
     topQueries: GSCTopQueriesResult;
     topPages: GSCTopPagesResult;
     deviceBreakdown: GSCDeviceBreakdownResult;
+    dailyPerformance: GSCDailyPerformanceResult;
     currentStartDate?: string;
     currentEndDate?: string;
 };
@@ -36,6 +49,7 @@ export function GSCDashboardClient({
     topQueries,
     topPages,
     deviceBreakdown,
+    dailyPerformance,
     currentStartDate,
     currentEndDate,
 }: GSCDashboardClientProps) {
@@ -151,6 +165,81 @@ export function GSCDashboardClient({
                     delta={getDelta(metrics.positionChange, true)}
                 />
             </div>
+
+            {/* Performance Chart */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Performance Over Time</CardTitle>
+                    <CardDescription>Daily clicks and impressions</CardDescription>
+                </CardHeader>
+                <div className="p-6 pl-0 h-[350px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={dailyPerformance.data}>
+                            <defs>
+                                <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                                </linearGradient>
+                                <linearGradient id="colorImpressions" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <XAxis
+                                dataKey="date"
+                                tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                stroke="#888888"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                            />
+                            <YAxis
+                                yAxisId="left"
+                                stroke="#888888"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(value) => `${value}`}
+                            />
+                            <YAxis
+                                yAxisId="right"
+                                orientation="right"
+                                stroke="#888888"
+                                fontSize={12}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={(value) => `${value}`}
+                            />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#f3f4f6' }}
+                                labelFormatter={(label) => new Date(label).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                            />
+                            <Legend />
+                            <Area
+                                yAxisId="left"
+                                type="monotone"
+                                dataKey="clicks"
+                                name="Clicks"
+                                stroke="#3b82f6"
+                                fillOpacity={1}
+                                fill="url(#colorClicks)"
+                                strokeWidth={2}
+                            />
+                            <Area
+                                yAxisId="right"
+                                type="monotone"
+                                dataKey="impressions"
+                                name="Impressions"
+                                stroke="#8b5cf6"
+                                fillOpacity={1}
+                                fill="url(#colorImpressions)"
+                                strokeWidth={2}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Top Queries Table */}

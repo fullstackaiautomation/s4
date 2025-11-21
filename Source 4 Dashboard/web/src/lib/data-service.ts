@@ -1144,6 +1144,51 @@ export async function getGSCOverview(params?: {
 }
 
 /**
+ * Get daily GSC performance for graphing
+ */
+export async function getGSCDailyPerformance(params?: {
+  startDate?: string;
+  endDate?: string;
+}): Promise<
+  ApiResponse<
+    Array<{
+      date: string;
+      clicks: number;
+      impressions: number;
+      ctr: number;
+      position: number;
+    }>
+  >
+> {
+  try {
+    const supabase = await getSupabaseServerClient();
+    const endDate = params?.endDate || new Date().toISOString().split('T')[0];
+    const startDate = params?.startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from('gsc_site_performance')
+      .select('date, clicks, impressions, ctr, position')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: true });
+
+    if (error) throw error;
+
+    return {
+      data: data || [],
+      source: "supabase",
+    };
+  } catch (error: any) {
+    console.error('Error fetching GSC daily performance:', error);
+    return {
+      data: [],
+      source: "sample",
+      error: error.message,
+    };
+  }
+}
+
+/**
  * Get top search queries from GSC
  */
 export async function getGSCTopQueries(params?: {
@@ -2853,7 +2898,7 @@ export async function getGA4Conversions(
       .from("ga4_conversions")
       .select("*")
       .order("date", { ascending: false })
-      .limit(5000);
+      .limit(50000);
 
     if (dateRange) {
       query = query.gte("date", dateRange.start).lte("date", dateRange.end);
