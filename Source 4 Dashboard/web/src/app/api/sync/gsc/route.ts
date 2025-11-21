@@ -1,72 +1,70 @@
-/**
- * Google Search Console Sync API Endpoint
- *
- * POST /api/sync/gsc
- */
-
 import { NextRequest, NextResponse } from 'next/server';
 import { createGSCSync } from '@/lib/integrations/gsc-sync';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 300; // 5 minutes
+
 export async function POST(request: NextRequest) {
   console.log('[GSC Sync API] Starting sync...');
-  try {
-    // Parse request body
-    const body = await request.json();
-    console.log('[GSC Sync API] Request body:', body);
-    const {
-      fullSync = false,
-      dateRange,
-      syncQueries = true,
-      syncPages = true,
-      syncDevices = true,
-      syncCountries = true,
-      syncSitePerformance = true
-    } = body;
 
+  // Check authorization
+  const authHeader = request.headers.get('authorization');
+  const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  if (!isCron && !isDev) {
+    // Check for authenticated user session
+    const { getSupabaseServerClient } = await import('@/lib/supabase/server');
+    const supabase = await getSupabaseServerClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
+  try {
     // Create sync instance
-    console.log('[GSC Sync API] Creating sync instance...');
     const gscSync = createGSCSync();
 
     if (!gscSync) {
       return NextResponse.json(
         {
           success: false,
-          error: 'GSC sync not configured. Please check environment variables.',
-          message: 'Missing GSC_SITE_URL or GSC_CREDENTIALS_JSON'
+          error: 'GSC sync not configured. Check environment variables.',
         },
         { status: 500 }
       );
     }
 
-    // Run sync
-    console.log('[GSC Sync API] Running sync with options:', {
-      fullSync,
-      dateRange,
-      syncQueries,
-      syncPages,
-      syncDevices,
-      syncCountries,
-      syncSitePerformance
-    });
+    // Sync last 7 days to catch any updates
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7);
+
+    const dateRange = {
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    };
+
+    console.log('[GSC Sync API] Syncing date range:', dateRange);
+
     const result = await gscSync.sync({
-      fullSync,
+      fullSync: false,
       dateRange,
-      syncQueries,
-      syncPages,
-      syncDevices,
-      syncCountries,
-      syncSitePerformance
+      syncQueries: true,
+      syncPages: true,
+      syncDevices: true,
+      syncCountries: true,
+      syncSitePerformance: true
     });
 
-    console.log('[GSC Sync API] Sync result:', result);
-    if (result.success) {
-      return NextResponse.json(result, { status: 200 });
-    } else {
-      return NextResponse.json(result, { status: 500 });
-    }
+    console.log('[GSC Sync API] Sync completed:', result);
+
+    return NextResponse.json(result, { status: result.success ? 200 : 500 });
 
   } catch (error: any) {
-    console.error('[GSC Sync API] Error:', error.message, error.stack);
+    console.error('[GSC Sync API] Error:', error);
     return NextResponse.json(
       {
         success: false,
@@ -76,14 +74,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-export async function GET() {
-  return NextResponse.json(
-    {
-      message: 'GSC Sync API',
-      usage: 'POST with JSON body: { fullSync?: boolean, dateRange?: { startDate: string, endDate: string } }'
-    },
-    { status: 200 }
-  );
 }

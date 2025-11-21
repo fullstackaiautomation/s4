@@ -5,14 +5,14 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export function SyncButton() {
+export function SyncButton({ endpoint = '/api/sync/merchant-center' }: { endpoint?: string }) {
     const [isSyncing, setIsSyncing] = useState(false);
     const router = useRouter();
 
     const handleSync = async () => {
         setIsSyncing(true);
         try {
-            const response = await fetch('/api/sync/merchant-center', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
             });
 
@@ -24,9 +24,9 @@ export function SyncButton() {
 
             router.refresh();
             alert(`Sync complete! ${data.message || ''}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error syncing:', error);
-            alert('Failed to sync data. Check console for details.');
+            alert(`Failed to sync data: ${error.message || 'Unknown error'}`);
         } finally {
             setIsSyncing(false);
         }
