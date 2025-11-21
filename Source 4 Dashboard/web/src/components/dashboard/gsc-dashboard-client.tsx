@@ -89,6 +89,7 @@ export function GSCDashboardClient({
                     <Button variant="outline" size="sm" onClick={() => handleRangeChange('90d')}>90D</Button>
                     <Button variant="outline" size="sm" onClick={() => handleRangeChange('ytd')}>YTD</Button>
                     <Button variant="outline" size="sm" onClick={() => handleRangeChange('12m')}>12M</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('all')}>All</Button>
                 </div>
             </div>
 
