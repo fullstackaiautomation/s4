@@ -64,15 +64,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sync last 7 days to catch any updates
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7);
+    // Parse date range from request body if available
+    let dateRange;
+    try {
+      const body = await request.json();
+      if (body.startDate && body.endDate) {
+        dateRange = {
+          startDate: body.startDate,
+          endDate: body.endDate
+        };
+      }
+    } catch (e) {
+      // Ignore JSON parse error (body might be empty)
+    }
 
-    const dateRange = {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
-    };
+    // Default to last 7 days if no range provided
+    if (!dateRange) {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 7);
+
+      dateRange = {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0]
+      };
+    }
 
     console.log('[GSC Sync API] Syncing date range:', dateRange);
 
