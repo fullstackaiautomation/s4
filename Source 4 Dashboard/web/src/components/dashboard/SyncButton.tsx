@@ -16,11 +16,14 @@ export function SyncButton() {
                 method: 'POST',
             });
 
-            if (!response.ok) {
-                throw new Error('Sync failed');
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || data.errors?.[0] || 'Sync failed');
             }
 
             router.refresh();
+            alert(`Sync complete! ${data.message || ''}`);
         } catch (error) {
             console.error('Error syncing:', error);
             alert('Failed to sync data. Check console for details.');
