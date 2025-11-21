@@ -7,10 +7,16 @@ export const maxDuration = 300; // 5 minutes
 export async function GET(request: Request) {
     try {
         const authHeader = request.headers.get('authorization');
-        if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-            // Allow manual triggering in dev or if authenticated as admin (simplified here)
-            // For now, just check cron secret or if in dev
-            if (process.env.NODE_ENV !== 'development' && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+        const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+        const isDev = process.env.NODE_ENV === 'development';
+
+        if (!isCron && !isDev) {
+            // Check for authenticated user session
+            const { getSupabaseServerClient } = await import('@/lib/supabase/server');
+            const supabase = await getSupabaseServerClient();
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
             }
         }

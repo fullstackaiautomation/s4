@@ -9,6 +9,23 @@ import { createGA4Sync } from '@/lib/integrations/ga4-sync';
 
 export async function POST(request: NextRequest) {
   console.log('[GA4 Sync API] Starting sync...');
+
+  // Check authorization
+  const authHeader = request.headers.get('authorization');
+  const isCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  const isDev = process.env.NODE_ENV === 'development';
+
+  if (!isCron && !isDev) {
+    // Check for authenticated user session
+    const { getSupabaseServerClient } = await import('@/lib/supabase/server');
+    const supabase = await getSupabaseServerClient();
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   try {
     // Parse request body
     const body = await request.json();
