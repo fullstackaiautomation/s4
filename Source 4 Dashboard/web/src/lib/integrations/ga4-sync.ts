@@ -250,7 +250,6 @@ export class GA4Sync {
         if (error) {
           console.error('Error upserting traffic:', error);
         } else {
-          // Check if it was insert or update (rough estimate)
           created++;
         }
       }
@@ -280,28 +279,45 @@ export class GA4Sync {
     error?: string;
   }> {
     try {
+      // Delete existing records for this date range to prevent duplicates
+      const { error: deleteError } = await this.supabase
+        .from('ga4_traffic_sources')
+        .delete()
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
+
+      if (deleteError) {
+        console.error('Error clearing old traffic sources:', deleteError);
+      }
+
       const sources = await this.ga4Client.getTrafficSources(dateRange);
 
       let created = 0;
 
-      for (const row of sources) {
+      // Batch insert
+      const chunkSize = 100;
+      for (let i = 0; i < sources.length; i += chunkSize) {
+        const chunk = sources.slice(i, i + chunkSize).map(row => ({
+          date: row.date,
+          source: row.source,
+          medium: row.medium,
+          campaign: row.campaign,
+          sessions: row.sessions,
+          users: row.users,
+          new_users: row.new_users,
+          conversions: row.conversions,
+          revenue: row.revenue,
+          synced_at: new Date().toISOString()
+        }));
+
         const { error } = await this.supabase
           .from('ga4_traffic_sources')
-          .insert({
-            date: row.date,
-            source: row.source,
-            medium: row.medium,
-            campaign: row.campaign,
-            sessions: row.sessions,
-            users: row.users,
-            new_users: row.new_users,
-            conversions: row.conversions,
-            revenue: row.revenue,
-            synced_at: new Date().toISOString()
-          });
+          .insert(chunk);
 
         if (!error) {
-          created++;
+          created += chunk.length;
+        } else {
+          console.error('Error inserting traffic sources chunk:', error);
         }
       }
 
@@ -330,26 +346,42 @@ export class GA4Sync {
     error?: string;
   }> {
     try {
+      // Delete existing records
+      const { error: deleteError } = await this.supabase
+        .from('ga4_page_performance')
+        .delete()
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
+
+      if (deleteError) {
+        console.error('Error clearing old page performance:', deleteError);
+      }
+
       const pages = await this.ga4Client.getPagePerformance(dateRange);
 
       let created = 0;
 
-      for (const row of pages) {
+      const chunkSize = 100;
+      for (let i = 0; i < pages.length; i += chunkSize) {
+        const chunk = pages.slice(i, i + chunkSize).map(row => ({
+          date: row.date,
+          page_path: row.page_path,
+          page_title: row.page_title,
+          pageviews: row.pageviews,
+          avg_time_on_page: row.avg_time_on_page,
+          bounce_rate: row.bounce_rate,
+          exits: row.exits,
+          synced_at: new Date().toISOString()
+        }));
+
         const { error } = await this.supabase
           .from('ga4_page_performance')
-          .insert({
-            date: row.date,
-            page_path: row.page_path,
-            page_title: row.page_title,
-            pageviews: row.pageviews,
-            avg_time_on_page: row.avg_time_on_page,
-            bounce_rate: row.bounce_rate,
-            exits: row.exits,
-            synced_at: new Date().toISOString()
-          });
+          .insert(chunk);
 
         if (!error) {
-          created++;
+          created += chunk.length;
+        } else {
+          console.error('Error inserting page performance chunk:', error);
         }
       }
 
@@ -378,28 +410,44 @@ export class GA4Sync {
     error?: string;
   }> {
     try {
+      // Delete existing records
+      const { error: deleteError } = await this.supabase
+        .from('ga4_ecommerce_transactions')
+        .delete()
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
+
+      if (deleteError) {
+        console.error('Error clearing old transactions:', deleteError);
+      }
+
       const transactions = await this.ga4Client.getEcommerceTransactions(dateRange);
 
       let created = 0;
 
-      for (const row of transactions) {
+      const chunkSize = 100;
+      for (let i = 0; i < transactions.length; i += chunkSize) {
+        const chunk = transactions.slice(i, i + chunkSize).map(row => ({
+          date: row.date,
+          transaction_id: row.transaction_id,
+          source: row.source,
+          medium: row.medium,
+          campaign: row.campaign,
+          revenue: row.revenue,
+          tax: row.tax,
+          shipping: row.shipping,
+          items_purchased: row.items_purchased,
+          synced_at: new Date().toISOString()
+        }));
+
         const { error } = await this.supabase
           .from('ga4_ecommerce_transactions')
-          .insert({
-            date: row.date,
-            transaction_id: row.transaction_id,
-            source: row.source,
-            medium: row.medium,
-            campaign: row.campaign,
-            revenue: row.revenue,
-            tax: row.tax,
-            shipping: row.shipping,
-            items_purchased: row.items_purchased,
-            synced_at: new Date().toISOString()
-          });
+          .insert(chunk);
 
         if (!error) {
-          created++;
+          created += chunk.length;
+        } else {
+          console.error('Error inserting transactions chunk:', error);
         }
       }
 
@@ -428,26 +476,42 @@ export class GA4Sync {
     error?: string;
   }> {
     try {
+      // Delete existing records
+      const { error: deleteError } = await this.supabase
+        .from('ga4_conversions')
+        .delete()
+        .gte('date', dateRange.startDate)
+        .lte('date', dateRange.endDate);
+
+      if (deleteError) {
+        console.error('Error clearing old conversions:', deleteError);
+      }
+
       const conversions = await this.ga4Client.getConversions(dateRange);
 
       let created = 0;
 
-      for (const row of conversions) {
+      const chunkSize = 100;
+      for (let i = 0; i < conversions.length; i += chunkSize) {
+        const chunk = conversions.slice(i, i + chunkSize).map(row => ({
+          date: row.date,
+          conversion_event: row.conversion_event,
+          source: row.source,
+          medium: row.medium,
+          campaign: row.campaign,
+          conversions: row.conversions,
+          conversion_value: row.conversion_value,
+          synced_at: new Date().toISOString()
+        }));
+
         const { error } = await this.supabase
           .from('ga4_conversions')
-          .insert({
-            date: row.date,
-            conversion_event: row.conversion_event,
-            source: row.source,
-            medium: row.medium,
-            campaign: row.campaign,
-            conversions: row.conversions,
-            conversion_value: row.conversion_value,
-            synced_at: new Date().toISOString()
-          });
+          .insert(chunk);
 
         if (!error) {
-          created++;
+          created += chunk.length;
+        } else {
+          console.error('Error inserting conversions chunk:', error);
         }
       }
 

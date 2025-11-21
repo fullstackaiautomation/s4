@@ -63,16 +63,42 @@ export function GSCDashboardClient({
         const params = new URLSearchParams(searchParams);
         const now = new Date();
         let start = new Date();
+        let end = new Date();
 
+        // Standard ranges (end date is today)
         if (range === '7d') start.setDate(now.getDate() - 7);
         if (range === '30d') start.setDate(now.getDate() - 30);
         if (range === '90d') start.setDate(now.getDate() - 90);
         if (range === 'ytd') start = new Date(now.getFullYear(), 0, 1);
         if (range === '12m') start.setFullYear(now.getFullYear() - 1);
-        if (range === 'all') start = new Date(2020, 0, 1); // Arbitrary old date
+        if (range === 'all') start = new Date(2020, 0, 1);
+
+        // Specific years
+        if (range === '2025') {
+            start = new Date('2025-01-01');
+            end = new Date('2025-12-31');
+        }
+        if (range === '2024') {
+            start = new Date('2024-01-01');
+            end = new Date('2024-12-31');
+        }
+        if (range === '2023') {
+            start = new Date('2023-01-01');
+            end = new Date('2023-12-31');
+        }
+
+        // Month ranges
+        if (range === 'this_month') {
+            start = new Date(now.getFullYear(), now.getMonth(), 1);
+            end = now;
+        }
+        if (range === 'last_month') {
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            end = new Date(now.getFullYear(), now.getMonth(), 0);
+        }
 
         params.set('from', start.toISOString().split('T')[0]);
-        params.set('to', now.toISOString().split('T')[0]);
+        params.set('to', end.toISOString().split('T')[0]);
         router.push(`?${params.toString()}`);
     };
 
@@ -83,13 +109,16 @@ export function GSCDashboardClient({
                     title="Google Search Console"
                     description="Organic search performance and visibility"
                 />
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('7d')}>7D</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('30d')}>30D</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('90d')}>90D</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('ytd')}>YTD</Button>
-                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('12m')}>12M</Button>
+                <div className="flex gap-2 flex-wrap justify-end">
                     <Button variant="outline" size="sm" onClick={() => handleRangeChange('all')}>All</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('2025')}>2025</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('2024')}>2024</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('2023')}>2023</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('90d')}>90D</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('30d')}>30D</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('7d')}>7D</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('this_month')}>This Month</Button>
+                    <Button variant="outline" size="sm" onClick={() => handleRangeChange('last_month')}>Last Month</Button>
                 </div>
             </div>
 
