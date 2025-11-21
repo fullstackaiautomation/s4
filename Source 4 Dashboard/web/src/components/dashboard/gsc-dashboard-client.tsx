@@ -74,7 +74,7 @@ export function GSCDashboardClient({
                 />
                 <MetricTile
                     label="Avg CTR"
-                    value={formatPercent(metrics.avgCtr / 100)}
+                    value={formatPercent(metrics.avgCtr / 100, 1)}
                     icon={<TrendingUp className="h-5 w-5" />}
                     delta={getDelta(metrics.ctrChange)}
                 />
@@ -110,7 +110,7 @@ export function GSCDashboardClient({
                                         <TableCell className="font-medium">{row.query}</TableCell>
                                         <TableCell className="text-right">{formatNumber(row.clicks)}</TableCell>
                                         <TableCell className="text-right">{formatNumber(row.impressions)}</TableCell>
-                                        <TableCell className="text-right">{formatPercent(row.ctr)}</TableCell>
+                                        <TableCell className="text-right">{formatPercent(row.ctr, 1)}</TableCell>
                                         <TableCell className="text-right">{row.position.toFixed(1)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -144,7 +144,7 @@ export function GSCDashboardClient({
                                         </TableCell>
                                         <TableCell className="text-right">{formatNumber(row.clicks)}</TableCell>
                                         <TableCell className="text-right">{formatNumber(row.impressions)}</TableCell>
-                                        <TableCell className="text-right">{formatPercent(row.ctr)}</TableCell>
+                                        <TableCell className="text-right">{formatPercent(row.ctr, 1)}</TableCell>
                                         <TableCell className="text-right">{row.position.toFixed(1)}</TableCell>
                                     </TableRow>
                                 ))}

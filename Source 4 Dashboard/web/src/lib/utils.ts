@@ -31,8 +31,8 @@ export function formatNumber(value: number): string {
   }).format(value);
 }
 
-export function formatPercent(value: number): string {
-  return `${(value * 100).toFixed(0)}%`;
+export function formatPercent(value: number, decimals = 0): string {
+  return `${(value * 100).toFixed(decimals)}%`;
 }
 
 const REP_NAME_MAP: Record<string, string> = {
