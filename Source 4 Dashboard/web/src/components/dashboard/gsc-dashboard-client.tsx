@@ -138,7 +138,7 @@ export function GSCDashboardClient({
                 />
                 <MetricTile
                     label="Avg CTR"
-                    value={formatPercent(metrics.avgCtr / 100, 1)}
+                    value={formatPercent(metrics.avgCtr, 1)}
                     icon={<TrendingUp className="h-5 w-5" />}
                     delta={getDelta(metrics.ctrChange)}
                 />

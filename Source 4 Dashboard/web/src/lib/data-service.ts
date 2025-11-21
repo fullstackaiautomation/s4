@@ -1071,12 +1071,13 @@ export async function getGSCOverview(params?: {
 
     const totalClicks = currentData.reduce((sum, row) => sum + (row.clicks || 0), 0);
     const totalImpressions = currentData.reduce((sum, row) => sum + (row.impressions || 0), 0);
-    const avgCtr = currentData.length > 0
-      ? currentData.reduce((sum, row) => sum + (row.ctr || 0), 0) / currentData.length
-      : 0;
-    const avgPosition = currentData.length > 0
-      ? currentData.reduce((sum, row) => sum + (row.position || 0), 0) / currentData.length
-      : 0;
+
+    // Calculate aggregate CTR (Clicks / Impressions)
+    const avgCtr = totalImpressions > 0 ? totalClicks / totalImpressions : 0;
+
+    // Calculate weighted average position (Sum(Position * Impressions) / Total Impressions)
+    const weightedPositionSum = currentData.reduce((sum, row) => sum + ((row.position || 0) * (row.impressions || 0)), 0);
+    const avgPosition = totalImpressions > 0 ? weightedPositionSum / totalImpressions : 0;
 
     // Get previous period for comparison
     const daysDiff = Math.ceil((new Date(endDate).getTime() - new Date(startDate).getTime()) / (24 * 60 * 60 * 1000));
@@ -1097,8 +1098,11 @@ export async function getGSCOverview(params?: {
     if (prevData && prevData.length > 0) {
       const prevClicks = prevData.reduce((sum, row) => sum + (row.clicks || 0), 0);
       const prevImpressions = prevData.reduce((sum, row) => sum + (row.impressions || 0), 0);
-      const prevCtr = prevData.reduce((sum, row) => sum + (row.ctr || 0), 0) / prevData.length;
-      const prevPosition = prevData.reduce((sum, row) => sum + (row.position || 0), 0) / prevData.length;
+
+      const prevCtr = prevImpressions > 0 ? prevClicks / prevImpressions : 0;
+
+      const prevWeightedPositionSum = prevData.reduce((sum, row) => sum + ((row.position || 0) * (row.impressions || 0)), 0);
+      const prevPosition = prevImpressions > 0 ? prevWeightedPositionSum / prevImpressions : 0;
 
       clicksChange = prevClicks > 0 ? ((totalClicks - prevClicks) / prevClicks) * 100 : 0;
       impressionsChange = prevImpressions > 0 ? ((totalImpressions - prevImpressions) / prevImpressions) * 100 : 0;
@@ -3691,9 +3695,9 @@ export async function getSyncLogSummaries(): Promise<ApiResponse<SyncLogSummary[
       const completedSyncs = asanaLogs.filter((l: any) => l.sync_completed_at);
       const avgDuration = completedSyncs.length > 0
         ? completedSyncs.reduce((sum: number, l: any) => {
-            const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
-            return sum + duration;
-          }, 0) / completedSyncs.length
+          const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
+          return sum + duration;
+        }, 0) / completedSyncs.length
         : null;
       const lastError = asanaLogs.find((l: any) => l.errors && l.errors.length > 0)?.errors?.[0] || null;
 
@@ -3733,9 +3737,9 @@ export async function getSyncLogSummaries(): Promise<ApiResponse<SyncLogSummary[
       const completedSyncs = ga4Logs.filter((l: any) => l.sync_completed_at);
       const avgDuration = completedSyncs.length > 0
         ? completedSyncs.reduce((sum: number, l: any) => {
-            const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
-            return sum + duration;
-          }, 0) / completedSyncs.length
+          const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
+          return sum + duration;
+        }, 0) / completedSyncs.length
         : null;
       const lastError = ga4Logs.find((l: any) => l.errors && l.errors.length > 0)?.errors?.[0] || null;
 
@@ -3775,9 +3779,9 @@ export async function getSyncLogSummaries(): Promise<ApiResponse<SyncLogSummary[
       const completedSyncs = gscLogs.filter((l: any) => l.sync_completed_at);
       const avgDuration = completedSyncs.length > 0
         ? completedSyncs.reduce((sum: number, l: any) => {
-            const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
-            return sum + duration;
-          }, 0) / completedSyncs.length
+          const duration = (new Date(l.sync_completed_at).getTime() - new Date(l.sync_started_at).getTime()) / 1000;
+          return sum + duration;
+        }, 0) / completedSyncs.length
         : null;
       const lastError = gscLogs.find((l: any) => l.errors)?.errors || null;
 
